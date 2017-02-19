@@ -1,4 +1,4 @@
-OPAQUE_HOME=$HOME/opaque
+export OPAQUE_HOME=$HOME/opaque
 
 source /opt/intel/sgxsdk/environment # from SGX SDK install directory in step 1
 export CXX=/usr/bin/g++-4.8
