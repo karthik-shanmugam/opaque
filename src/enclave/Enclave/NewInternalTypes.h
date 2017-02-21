@@ -495,6 +495,10 @@ public:
     this->offset = offset;
   }
 
+  uint32_t get_offset() {
+    return offset;
+  }
+
   /** Return true if the given aggregator belongs to the same group as this one. */
   bool grouping_attrs_equal(Aggregator1 *other) {
     return g.equals(&other->g);

@@ -163,6 +163,131 @@ void aggregate_step2(Verify *verify_set,
 }
 
 
+template<typename AggregatorType>
+void aggregate_step2_low_cardinality(Verify *verify_set,
+                     uint8_t *input_rows, uint32_t input_rows_length,
+                     uint32_t num_rows,
+                     uint8_t *boundary_info_rows, uint32_t boundary_info_rows_length,
+                     uint8_t *output_rows, uint32_t output_rows_length,
+                     uint32_t *actual_size) {
+  (void)boundary_info_rows_length;
+  (void)output_rows_length;
+
+  RowReader r(input_rows, input_rows + input_rows_length, verify_set);
+  RowWriter w(output_rows);
+  w.set_self_task_id(verify_set->get_self_task_id());
+  NewRecord cur, next;
+  AggregatorType a;
+
+  IndividualRowReaderV boundary_info_reader(boundary_info_rows, verify_set);
+  AggregatorType boundary_info;
+  NewRecord next_partition_first_row;
+  boundary_info_reader.read(&boundary_info);
+  boundary_info_reader.read(&next_partition_first_row);
+
+  // Use the last row partial aggregate from the previous partition as the initial aggregate for
+  // this partition
+  // karthik: we don't want to do this for low cardinality
+  // a.set(&boundary_info);
+  
+  // karthik: add dummies for groups that come before this partition
+  for (uint32_t i = 0; i < boundary_info.get_offset(); i++) {
+    cur.clear();
+    // TODO karthik: will this set the aggregate to 0?
+    a = AggregatorType();
+    a.append_result(&cur, true);
+    w.write(&cur);
+  }
+
+  // karthik: add a row for each distinct group in this partition
+  for (uint32_t i = 0; i < num_rows; i++) {
+    // Populate cur and next to enable lookahead
+    if (i == 0) r.read(&cur); else cur.set(&next);
+    if (i < num_rows - 1) r.read(&next); else next.set(&next_partition_first_row);
+
+    a.aggregate(&cur);
+
+    // The current aggregate is final if it is the last aggregate for its run
+    bool a_is_final = !a.grouping_attrs_equal(&next);
+
+    // karthik: only write one row per group
+    if (a_is_final || i == num_rows - 1) {
+      cur.clear();
+      a.append_result(&cur, false);
+      w.write(&cur);     
+    }
+
+  }
+
+  // karthik: add a dummy row for each distinct group after this partition
+  for (uint32_t i = boundary_info.get_offset() + a.get_num_distinct(); i < boundary_info.get_num_distinct(); i++) {
+    cur.clear();
+    a = AggregatorType();
+    a.append_result(&cur, true);
+    w.write(&cur); 
+  }
+
+  w.close();
+  *actual_size = w.bytes_written();
+}
+
+// karthik: this function should take the partial aggregates from each partition and aggregate them together
+// num_rows should be equal to num_distinct_groups*num_partitions
+// Assumptions:
+// row i*num_distinct_groups + j is partition i's partial aggregate for group j
+// some of these partial aggregates will be 0
+template<typename AggregatorType>
+void aggregate_process_boundaries2_low_cardinality(Verify *verify_set,
+                                  uint8_t *input_rows, uint32_t input_rows_length,
+                                  uint32_t num_rows,
+                                  uint8_t *output_rows, uint32_t output_rows_length,
+                                  uint32_t *actual_output_rows_length) {
+  // TODO karthik: I need to somehow know how many partitions there are
+  int num_distinct_groups = 7; //placeholder for now. none of this is working code anyways...
+
+  // allocate an aggregator for each group
+  AggregatorType *aggregates = malloc(sizeof(AggregatorType) * num_distinct_groups);
+
+  for (int i = 0; i < num_distinct_groups; i++) {
+    aggregates[i] = AggregatorType();
+  }
+
+  RowReader r(input_rows, input_rows + input_rows_length, verify_set);
+  RowWriter w(output_rows);
+  // assumes num_rows = num_partitions * num_distinct_groups
+  for (int i = 0; i < num_rows; i++) {
+
+    // index is the index of the group the next row corresponds to
+    int index = i % num_distinct_groups;
+
+    // we need to get the next AggregatorType from the block and check if it is a dummy
+    AggregatorType temp;
+    r.read(&temp);
+
+    // combining partial aggregates across partitions
+    if (aggregates[index].grouping_attrs_equal(&temp)) {
+      aggregates[index].aggregate(&temp);
+
+    // this occurs when we find the first non-dummy for a group
+    // I'm assuming there will eventually be a non-dummy for each group because we counted the number
+    //   of groups earlier
+    // This is a pretty sphagetti approach. Basically in the previous step I implemented dummy aggregates
+    // by writing newly constructed AggregatorType objects. These should have partial aggregates of zero and grouping attrs of zero
+    // When we hit the first non-dummy partial aggregate, if it's attributes are non zero this condition is run
+    // otherwise we just aggregate it with all the zero aggregates from earlier iterations so nothing bad happens
+    } else {
+      aggregates[index].set(&temp);
+    }
+  }
+  for (int i = 0; i < num_distinct_groups; i++) {
+    w.write(&aggregates[i]);
+  }
+
+  w.close();
+  *actual_size = w.bytes_written();
+}
+
+
 // non-oblivious aggregation
 // a single scan, assume that external_sort is already called
 template<typename AggregatorType>
