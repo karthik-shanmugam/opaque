@@ -187,14 +187,12 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
 
   // Use the last row partial aggregate from the previous partition as the initial aggregate for
   // this partition
-  // karthik: we don't want to do this for low cardinality
+  // karthik: we don't want to do this for low cardinality, each partition should just make it's own partial aggregates
   // a.set(&boundary_info);
   
   // karthik: add dummies for groups that come before this partition
   for (uint32_t i = 0; i < boundary_info.get_offset(); i++) {
     cur.clear();
-    // TODO karthik: will this set the aggregate to 0?
-    a = AggregatorType();
     a.append_result(&cur, true);
     w.write(&cur);
   }
@@ -222,7 +220,6 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   // karthik: add a dummy row for each distinct group after this partition
   for (uint32_t i = boundary_info.get_offset() + a.get_num_distinct(); i < boundary_info.get_num_distinct(); i++) {
     cur.clear();
-    a = AggregatorType();
     a.append_result(&cur, true);
     w.write(&cur); 
   }
@@ -235,17 +232,19 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
 // num_rows should be equal to num_distinct_groups*num_partitions
 // Assumptions:
 // row i*num_distinct_groups + j is partition i's partial aggregate for group j
-// some of these partial aggregates will be 0
+// input_rows should be the outputs of all the "aggregate_step2_low_cardinality" calls concatenated together
 template<typename AggregatorType>
 void aggregate_process_boundaries2_low_cardinality(Verify *verify_set,
                                   uint8_t *input_rows, uint32_t input_rows_length,
                                   uint32_t num_rows,
                                   uint8_t *output_rows, uint32_t output_rows_length,
                                   uint32_t *actual_output_rows_length) {
-  // TODO karthik: I need to somehow know how many partitions there are
+  // TODO karthik: I need to somehow know how many partitions/distinct groups there are
   int num_distinct_groups = 7; //placeholder for now. none of this is working code anyways...
 
   // allocate an aggregator for each group
+  // TODO karthik: I can instead navigate the input rows in a different order to avoid this malloc, but this would require
+  // modifications to RowReader
   AggregatorType *aggregates = malloc(sizeof(AggregatorType) * num_distinct_groups);
 
   for (int i = 0; i < num_distinct_groups; i++) {
@@ -261,26 +260,20 @@ void aggregate_process_boundaries2_low_cardinality(Verify *verify_set,
     int index = i % num_distinct_groups;
 
     // we need to get the next AggregatorType from the block and check if it is a dummy
-    AggregatorType temp;
-    r.read(&temp);
+    // AggregatorType temp;
+    NewRecord cur;
+    r.read(&cur);
 
-    // combining partial aggregates across partitions
-    if (aggregates[index].grouping_attrs_equal(&temp)) {
-      aggregates[index].aggregate(&temp);
-
-    // this occurs when we find the first non-dummy for a group
-    // I'm assuming there will eventually be a non-dummy for each group because we counted the number
-    //   of groups earlier
-    // This is a pretty sphagetti approach. Basically in the previous step I implemented dummy aggregates
-    // by writing newly constructed AggregatorType objects. These should have partial aggregates of zero and grouping attrs of zero
-    // When we hit the first non-dummy partial aggregate, if it's attributes are non zero this condition is run
-    // otherwise we just aggregate it with all the zero aggregates from earlier iterations so nothing bad happens
-    } else {
-      aggregates[index].set(&temp);
+    // don't aggregate the dummies
+    if (!cur.is_dummy()) {
+      aggregates[index].aggregate(&cur);     
     }
+
   }
   for (int i = 0; i < num_distinct_groups; i++) {
-    w.write(&aggregates[i]);
+    NewRecord cur;
+    aggregates[i].append_result(&cur, false);
+    w.write(&cur);
   }
 
   w.close();
