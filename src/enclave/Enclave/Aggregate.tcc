@@ -173,7 +173,8 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   (void)boundary_info_rows_length;
   (void)output_rows_length;
 
-  RowReader r(input_rows, input_rows + input_rows_length, verify_set);
+
+
   RowWriter w(output_rows);
   w.set_self_task_id(verify_set->get_self_task_id());
   NewRecord cur, next;
@@ -185,36 +186,63 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   boundary_info_reader.read(&boundary_info);
   boundary_info_reader.read(&next_partition_first_row);
 
+
+
   // Use the last row partial aggregate from the previous partition as the initial aggregate for
   // this partition
   // karthik: we don't want to do this for low cardinality, each partition should just make it's own partial aggregates
   // a.set(&boundary_info);
   
-  // karthik: add dummies for groups that come before this partition
-  for (uint32_t i = 0; i < boundary_info.get_offset(); i++) {
-    cur.clear();
-    a.append_result(&cur, true);
-    w.write(&cur);
-  }
+  // // karthik: add dummies for groups that come before this partition
+  // for (uint32_t i = 0; i < boundary_info.get_offset(); i++) {
+  //   RowReader r(input_rows, input_rows + input_rows_length, verify_set);
+  //   AggregatorType a;
+  //   for (int j = 0; j < num_rows; j++) {
+  //     a.aggregate(&cur)
+  //   }
+  //   cur.clear();
+  //   a.append_result(&cur, true);
+  //   w.write(&cur);
+  // }
 
-  // karthik: add a row for each distinct group in this partition
-  for (uint32_t i = 0; i < num_rows; i++) {
-    // Populate cur and next to enable lookahead
-    if (i == 0) r.read(&cur); else cur.set(&next);
-    if (i < num_rows - 1) r.read(&next); else next.set(&next_partition_first_row);
+  int num_distinct = boundary_info.get_num_distinct();
+  int num_passes;
+  int aggregates_per_pass;
+  NewRecord *agg_buf = malloc(sizeof(NewRecord) * aggregates_per_pass);
 
-    a.aggregate(&cur);
 
-    // The current aggregate is final if it is the last aggregate for its run
-    bool a_is_final = !a.grouping_attrs_equal(&next);
 
-    // karthik: only write one row per group
-    if (a_is_final || i == num_rows - 1) {
-      cur.clear();
-      a.append_result(&cur, false);
-      w.write(&cur);     
+  for (int i = 0; i < num_passes; i++) {
+
+    int group_num = 0;
+    for (int j = 0; j < num_distinct_groups; j++) {
+      agg_buf[j] = NewRecord();
     }
+    for (uint32_t j = 0; j < num_rows; j++) {
+      // Populate cur and next to enable lookahead
+      if (j == 0) r.read(&cur); else cur.set(&next);
+      if (j < num_rows - 1) r.read(&next); else next.set(&next_partition_first_row);
 
+      a.aggregate(&cur);
+
+      // The current aggregate is final if it is the last aggregate for its run
+      bool a_is_final = !a.grouping_attrs_equal(&next);
+
+      // karthik: only write one row per group
+      if (a_is_final || j == num_rows - 1) {
+        int agg_buf_index = (boundary_info.get_offset() + a.get_num_distinct()) - (i * aggregates_per_pass);
+        if (0 <= agg_buf_index && agg_buf_index < aggregates_per_pass) {
+          a.append_result(&agg_buf[agg_buf_index], true);
+        }
+        // cur.clear();
+        // a.append_result(&cur, false);
+        // w.write(&cur);     
+      }
+
+    }
+    for (int j = 0; j < aggregates_per_pass; j++) {
+      w.write(&agg_buf[j]);
+    }
   }
 
   // karthik: add a dummy row for each distinct group after this partition
