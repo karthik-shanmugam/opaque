@@ -301,6 +301,72 @@ void ecall_aggregate_step2(int index, int num_part,
   verify_set.verify();
 }
 
+
+
+/**** LC Aggregation ****/
+void ecall_aggregate_step2_lc(int index, int num_part,
+                           int op_code,
+                           uint8_t *input_rows, uint32_t input_rows_length,
+                           uint32_t num_rows,
+                           uint8_t *boundary_info_row_ptr, uint32_t boundary_info_row_length,
+                           uint32_t s,
+                           uint8_t *output_rows, uint32_t output_rows_length,
+                           uint32_t *actual_size) {
+  (void) index;
+  (void) num_part;
+  Verify verify_set(op_code, 1, 0);
+
+  switch (op_code) {
+  case OP_GROUPBY_COL1_SUM_COL2_INT_STEP2:
+    aggregate_step2_low_cardinality<Aggregator1<GroupBy<1>, Sum<2, uint32_t, uint64_t> > >(
+      &verify_set,
+      input_rows, input_rows_length, num_rows, boundary_info_row_ptr, boundary_info_row_length, s,
+      output_rows, output_rows_length, actual_size);
+    break;
+  case OP_GROUPBY_COL1_SUM_COL2_FLOAT_STEP2:
+    aggregate_step2_low_cardinality<Aggregator1<GroupBy<1>, Sum<2, float, double> > >(
+      &verify_set,
+      input_rows, input_rows_length, num_rows, boundary_info_row_ptr, boundary_info_row_length, s,
+      output_rows, output_rows_length, actual_size);
+    break;
+  case OP_GROUPBY_COL1_MIN_COL2_INT_STEP2:
+    aggregate_step2_low_cardinality<Aggregator1<GroupBy<1>, Min<2, uint32_t, uint32_t> > >(
+      &verify_set,
+      input_rows, input_rows_length, num_rows, boundary_info_row_ptr, boundary_info_row_length, s,
+      output_rows, output_rows_length, actual_size);
+    break;
+  case OP_GROUPBY_COL2_SUM_COL3_INT_STEP2:
+    aggregate_step2_low_cardinality<Aggregator1<GroupBy<2>, Sum<3, uint32_t, uint64_t> > >(
+      &verify_set,
+      input_rows, input_rows_length, num_rows, boundary_info_row_ptr, boundary_info_row_length, s,
+      output_rows, output_rows_length, actual_size);
+    break;
+  case OP_GROUPBY_COL1_SUM_COL3_FLOAT_AVG_COL2_INT_STEP2:
+    aggregate_step2_low_cardinality<
+      Aggregator2<GroupBy<1>,
+                  Sum<3, float, double>,
+                  Avg<2, uint32_t, double> > >(
+                    &verify_set,
+                    input_rows, input_rows_length, num_rows, boundary_info_row_ptr,
+                    boundary_info_row_length, s, output_rows, output_rows_length, actual_size);
+    break;
+  case OP_GROUPBY_COL1_COL2_SUM_COL3_FLOAT_STEP2:
+    aggregate_step2_low_cardinality<Aggregator1<GroupBy2<1, 2>, Sum<3, float, double> > >(
+      &verify_set,
+      input_rows, input_rows_length, num_rows, boundary_info_row_ptr, boundary_info_row_length, s,
+      output_rows, output_rows_length, actual_size);
+    break;
+  default:
+    printf("ecall_aggregate_step2_lc: Unknown opcode %d\n", op_code);
+    assert(false);
+  }
+
+  verify_set.verify();
+}
+
+
+
+
 /**** END Aggregation ****/
 
 /**** BEGIN Join ****/

@@ -168,6 +168,7 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
                      uint8_t *input_rows, uint32_t input_rows_length,
                      uint32_t num_rows,
                      uint8_t *boundary_info_rows, uint32_t boundary_info_rows_length,
+                     uint32_t s, // s is number of paritions in next step
                      uint8_t *output_rows, uint32_t output_rows_length,
                      uint32_t *actual_size) {
   (void)boundary_info_rows_length;
@@ -189,7 +190,7 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   int num_distinct = boundary_info.get_num_distinct();
   int aggregates_per_pass; // how many partial aggregates we can fit into memory
   int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass;
-
+  int num_per_partition = num_distinct / s; // so we know how to break our output into blocks
   // So this would be a buffer that fits into the EPC and we do multiple passes with this?
   NewRecord *agg_buf = malloc(sizeof(NewRecord) * aggregates_per_pass);
 
@@ -230,6 +231,11 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
     // write to the buffer for this pass. The second condition is to account for the tail case on the last pass
     for (int j = 0; j < aggregates_per_pass && (j + (i*aggregates_per_pass)) < num_distinct_groups; j++) {
       w.write(&agg_buf[j]);
+
+      // breaks output into a new block after every num_per_partition writes
+      if ((j + (i*aggregates_per_pass) + 1) % num_per_partition == 0) {
+        w.finish_block();
+      }
     }
   }
 
@@ -247,13 +253,11 @@ void aggregate_process_boundaries2_low_cardinality(Verify *verify_set,
                                   uint8_t *input_rows, uint32_t input_rows_length,
                                   uint32_t num_rows,
                                   uint8_t *output_rows, uint32_t output_rows_length,
+                                  uint32_t num_distinct_groups, // number of groups for this partition to aggregate
                                   uint32_t *actual_output_rows_length) {
-  // TODO karthik: I need to somehow know how many partitions/distinct groups there are
-  int num_distinct_groups = 7; //placeholder for now. none of this is working code anyways...
 
   // allocate an aggregator for each group
-  // TODO karthik: I can instead navigate the input rows in a different order to avoid this malloc, but this would require
-  // modifications to RowReader
+  // TODO karthik: Should I try to avoid this malloc somehow?
   AggregatorType *aggregates = malloc(sizeof(AggregatorType) * num_distinct_groups);
 
   for (int i = 0; i < num_distinct_groups; i++) {
@@ -268,12 +272,9 @@ void aggregate_process_boundaries2_low_cardinality(Verify *verify_set,
     // index is the index of the group the next row corresponds to
     int index = i % num_distinct_groups;
 
-    // we need to get the next AggregatorType from the block and check if it is a dummy
-    // AggregatorType temp;
     NewRecord cur;
     r.read(&cur);
 
-    // don't aggregate the dummies
     if (!cur.is_dummy()) {
       aggregates[index].aggregate(&cur);     
     }
