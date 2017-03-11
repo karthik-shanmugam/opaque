@@ -189,7 +189,7 @@ void ecall_process_boundary_records(int op_code,
                                     uint8_t *rows, uint32_t rows_size,
                                     uint32_t num_rows,
                                     uint8_t *out_agg_rows, uint32_t out_agg_row_size,
-                                    uint32_t *actual_out_agg_row_size) {
+                                    uint32_t *actual_out_agg_row_size, uint32_t *num_distinct_groups) {
   uint32_t num_part = 1;
   uint32_t index = 0;
   Verify verify_set(op_code, num_part, index);
@@ -199,25 +199,25 @@ void ecall_process_boundary_records(int op_code,
     aggregate_process_boundaries<Aggregator1<GroupBy<1>, Sum<2, uint32_t, uint64_t> > >(
       &verify_set,
       rows, rows_size, num_rows, out_agg_rows, out_agg_row_size,
-      actual_out_agg_row_size);
+      actual_out_agg_row_size, num_distinct_groups);
     break;
   case OP_GROUPBY_COL1_SUM_COL2_FLOAT_STEP1:
     aggregate_process_boundaries<Aggregator1<GroupBy<1>, Sum<2, float, double> > >(
       &verify_set,
       rows, rows_size, num_rows, out_agg_rows, out_agg_row_size,
-      actual_out_agg_row_size);
+      actual_out_agg_row_size, num_distinct_groups);
     break;
   case OP_GROUPBY_COL1_MIN_COL2_INT_STEP1:
     aggregate_process_boundaries<Aggregator1<GroupBy<1>, Min<2, uint32_t, uint32_t> > >(
       &verify_set,
       rows, rows_size, num_rows, out_agg_rows, out_agg_row_size,
-      actual_out_agg_row_size);
+      actual_out_agg_row_size, num_distinct_groups);
     break;
   case OP_GROUPBY_COL2_SUM_COL3_INT_STEP1:
     aggregate_process_boundaries<Aggregator1<GroupBy<2>, Sum<3, uint32_t, uint64_t> > >(
       &verify_set,
       rows, rows_size, num_rows, out_agg_rows, out_agg_row_size,
-      actual_out_agg_row_size);
+      actual_out_agg_row_size, num_distinct_groups);
     break;
   case OP_GROUPBY_COL1_SUM_COL3_FLOAT_AVG_COL2_INT_STEP1:
     aggregate_process_boundaries<
@@ -226,13 +226,13 @@ void ecall_process_boundary_records(int op_code,
                   Avg<2, uint32_t, double> > >(
                     &verify_set,
                     rows, rows_size, num_rows, out_agg_rows, out_agg_row_size,
-                    actual_out_agg_row_size);
+                    actual_out_agg_row_size, num_distinct_groups);
     break;
   case OP_GROUPBY_COL1_COL2_SUM_COL3_FLOAT_STEP1:
     aggregate_process_boundaries<Aggregator1<GroupBy2<1, 2>, Sum<3, float, double> > >(
       &verify_set,
       rows, rows_size, num_rows, out_agg_rows, out_agg_row_size,
-      actual_out_agg_row_size);
+      actual_out_agg_row_size, num_distinct_groups);
     break;
   default:
     printf("ecall_process_boundary_records: Unknown opcode %d\n", op_code);

@@ -512,9 +512,10 @@ case class ObliviousAggregateExec(
     }
     val (enclave, eid) = Utils.initEnclave()
     val processedBoundariesConcat = time("aggregate - ProcessBoundary") {
+      val numDistinctGroups = new MutableInteger
       enclave.ProcessBoundary(
         eid, aggStep1Opcode.value,
-        Utils.concatByteArrays(boundariesCollected), boundariesCollected.length)
+        Utils.concatByteArrays(boundariesCollected), boundariesCollected.length, numDistinctGroups)
     }
 
     // Send processed boundaries to partitions and generate a mix of partial and final aggregates
@@ -705,10 +706,11 @@ case class ObliviousAggregateExecLowCardinality(
       return sqlContext.sparkContext.emptyRDD[Block]
     }
     val (enclave, eid) = Utils.initEnclave()
+    val numDistinctGroups = new MutableInteger
     val processedBoundariesConcat = time("aggregate - ProcessBoundary") {
       enclave.ProcessBoundary(
         eid, aggStep1Opcode.value,
-        Utils.concatByteArrays(boundariesCollected), boundariesCollected.length)
+        Utils.concatByteArrays(boundariesCollected), boundariesCollected.length, numDistinctGroups)
     }
 
     // Send processed boundaries to partitions and generate a mix of partial and final aggregates
@@ -732,16 +734,14 @@ case class ObliviousAggregateExecLowCardinality(
         partialAgg
         //Iterator(Block(partialAgg, block.numRows))
     }
-
     Utils.ensureCached(partialAggregates)
     time("aggregate - step 2") { partialAggregates.count }
 
     // TODO Karthik: shuffle partial aggregates
-    val shuffledPartialAggregates = partialAggregates.map {block =>
-      // TODO: find this num_distinct_groups, probably from boundary processing
-      Utils.splitBytes(block, num_distinct_groups).zipWithIndex
-    }.groupBy{s=>s._2}.map {
-      case (blocks, i) =>
+    val shuffledPartialAggregates = partialAggregates.flatMap {block =>
+      Utils.splitBytes(block, numDistinctGroups).zipWithIndex.map{(block, i) => (i, block)}
+    }.groupByKey(numDistinctGroups).map {
+      case (i, blocks) =>
         Utils.concatByteArrays(blocks)
     }
 

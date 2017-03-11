@@ -997,7 +997,8 @@ JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEncla
   jlong eid,
   jint op_code,
   jbyteArray rows,
-  jint num_rows) {
+  jint num_rows,
+  jobject num_distinct_groups_obj) {
   (void)obj;
 
   jboolean if_copy;
@@ -1014,16 +1015,23 @@ JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEncla
   uint8_t *out_agg_rows = (uint8_t *) malloc(out_agg_rows_length);
   uint32_t actual_out_agg_rows_size = 0;
 
+  uint32_t num_distinct_groups = 0;
+
   sgx_check("ProcessBoundary",
             ecall_process_boundary_records(
               eid, op_code,
               rows_ptr, rows_length,
               num_rows,
               out_agg_rows, out_agg_rows_length,
-              &actual_out_agg_rows_size));
+              &actual_out_agg_rows_size, &num_distinct_groups));
 
   jbyteArray ret = env->NewByteArray(actual_out_agg_rows_size);
   env->SetByteArrayRegion(ret, 0, actual_out_agg_rows_size, (jbyte *) out_agg_rows);
+
+
+  jclass num_distinct_groups_class = env->GetObjectClass(num_distinct_groups_obj);
+  jfieldID field_id = env->GetFieldID(num_distinct_groups_class, "value", "I");
+  env->SetIntField(num_distinct_groups_obj, field_id, num_distinct_groups);
 
   env->ReleaseByteArrayElements(rows, (jbyte *) rows_ptr, 0);
 

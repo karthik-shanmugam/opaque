@@ -38,7 +38,7 @@ void aggregate_process_boundaries(Verify *verify_set,
                                   uint8_t *input_rows, uint32_t input_rows_length,
                                   uint32_t num_rows,
                                   uint8_t *output_rows, uint32_t output_rows_length,
-                                  uint32_t *actual_output_rows_length) {
+                                  uint32_t *actual_output_rows_length, uint32_t *num_distinct_groups) {
   (void)input_rows_length;
   (void)output_rows_length;
 
@@ -115,6 +115,7 @@ void aggregate_process_boundaries(Verify *verify_set,
 
   w.close();
   *actual_output_rows_length = w.bytes_written();
+  *num_distinct_groups = num_distinct;
 }
 
 template<typename AggregatorType>

@@ -103,7 +103,8 @@ class SGXEnclave extends java.io.Serializable {
     eid: Long,
     op_code: Int,
     agg_rows: Array[Byte],
-    num_agg_rows: Int
+    num_agg_rows: Int,
+    num_distinct_groups: MutableInteger,
   ): Array[Byte]
 
   @native def AggregateStep2(
