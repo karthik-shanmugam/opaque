@@ -175,8 +175,8 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   (void)output_rows_length;
 
 
-
-  RowWriter w(output_rows);
+  RowReader r(input_rows, input_rows + input_rows_length, verify_set);
+  IndividualRowWriterV w(output_rows);
   w.set_self_task_id(verify_set->get_self_task_id());
   NewRecord cur, next;
   AggregatorType a;
@@ -188,9 +188,8 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   boundary_info_reader.read(&next_partition_first_row);
 
   int num_distinct = boundary_info.get_num_distinct();
-  int aggregates_per_pass; // how many partial aggregates we can fit into memory
+  int aggregates_per_pass; // TODO Karthik: how many partial aggregates we can fit into memory
   int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass;
-  int num_per_partition = num_distinct / s; // so we know how to break our output into blocks
   // So this would be a buffer that fits into the EPC and we do multiple passes with this?
   NewRecord *agg_buf = malloc(sizeof(NewRecord) * aggregates_per_pass);
 
@@ -231,11 +230,6 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
     // write to the buffer for this pass. The second condition is to account for the tail case on the last pass
     for (int j = 0; j < aggregates_per_pass && (j + (i*aggregates_per_pass)) < num_distinct_groups; j++) {
       w.write(&agg_buf[j]);
-
-      // breaks output into a new block after every num_per_partition writes
-      if ((j + (i*aggregates_per_pass) + 1) % num_per_partition == 0) {
-        w.finish_block();
-      }
     }
   }
 
@@ -286,6 +280,30 @@ void aggregate_process_boundaries2_low_cardinality(Verify *verify_set,
     w.write(&cur);
   }
 
+  w.close();
+  *actual_size = w.bytes_written();
+}
+
+// Very simple final aggregation step.
+// Input should be all the partial aggregates from step 2 for ONE group
+// Outputs ONE final aggregate
+template<typename AggregatorType>
+void aggregate_final_low_cardinality(Verify *verify_set,
+                                  uint8_t *input_rows, uint32_t input_rows_length,
+                                  uint32_t num_rows,
+                                  uint8_t *output_rows, uint32_t output_rows_length,
+                                  uint32_t *actual_output_rows_length) {
+  AggregatorType res = AggregatorType();
+  IndividualRowReaderV r(input_rows, input_rows + input_rows_length, verify_set);
+  IndividualRowWriterV w(output_rows);
+  for (int i = 0; i < num_rows; i++) {
+    NewRecord cur;
+    r.read(&cur);
+    res.aggregate(&cur);
+  }
+  NewRecord out;
+  res.append_result(&cur, false);
+  w.write(&cur);
   w.close();
   *actual_size = w.bytes_written();
 }
