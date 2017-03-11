@@ -737,13 +737,28 @@ case class ObliviousAggregateExecLowCardinality(
     time("aggregate - step 2") { partialAggregates.count }
 
     // TODO Karthik: shuffle partial aggregates
-    val shuffledPartialAggregates = null
+    val shuffledPartialAggregates = partialAggregates.map {block =>
+      // TODO: find this num_distinct_groups, probably from boundary processing
+      Utils.splitBytes(block, num_distinct_groups).zipWithIndex
+    }.groupBy{s=>s._2}.map {
+      case (blocks, i) =>
+        Utils.concatByteArrays(blocks)
+    }
 
     val finalAggregates = time("aggregate - aggregate partial aggregates") {
-      var result = shuffledPartialAggregates.zipPartitions { block =>
+      var result = shuffledPartialAggregates.map { block =>
         // TODO Karthik: call aggregate_process_boundaries2_low_cardinality (Aggregate.tcc)
-      }
+        val (enclave, eid) = Utils.initEnclave()
+
+        //TODO make this step work
+        val finalAgg = enclase.AggregateFinalLC(eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows)
+
+        assert(finalAgg.nonEmpty,
+          s"enclave.AggregateFinalLC($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}) returned empty result")
+        finalAgg
+      }.collect
     }
+    Utils.concatByteArrays(finalAggregates)
 
     // Sort the partial and final aggregates using a comparator that causes final aggregates to come first
     // val sortedAggregates = time("aggregate - sort dummies") {
@@ -766,7 +781,7 @@ case class ObliviousAggregateExecLowCardinality(
     //   result.count
     //   result
     // }
-    finalAggregates
+    // finalAggregates
   }
 }
 
