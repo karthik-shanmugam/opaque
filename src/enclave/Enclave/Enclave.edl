@@ -85,7 +85,8 @@ enclave {
       [in, size=rows_size] uint8_t *rows, uint32_t rows_size,
       uint32_t num_rows,
       [out, size=out_agg_row_size] uint8_t *out_agg_rows, uint32_t out_agg_row_size,
-      [out, size=4] uint32_t *actual_out_agg_row_size);
+      [out, size=4] uint32_t *actual_out_agg_row_size,
+      [out, size=4] uint32_t *num_distinct_groups);
     public void ecall_aggregate_step2(
       int index, int num_part,
       int op_code,

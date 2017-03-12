@@ -737,10 +737,10 @@ case class ObliviousAggregateExecLowCardinality(
     Utils.ensureCached(partialAggregates)
     time("aggregate - step 2") { partialAggregates.count }
 
-    // TODO Karthik: shuffle partial aggregates
+    // TODO Karthik: should I reduce by key instead?
     val shuffledPartialAggregates = partialAggregates.flatMap {block =>
-      Utils.splitBytes(block, numDistinctGroups).zipWithIndex.map{(block, i) => (i, block)}
-    }.groupByKey(numDistinctGroups).map {
+      Utils.splitBytes(block, numDistinctGroups.value).zipWithIndex.map{(block, i) => (i, block)}
+    }.groupByKey(numDistinctGroups.value).map {
       case (i, blocks) =>
         Utils.concatByteArrays(blocks)
     }
