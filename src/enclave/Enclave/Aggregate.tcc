@@ -174,12 +174,13 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   (void)boundary_info_rows_length;
   (void)output_rows_length;
 
+  printf("aggregate_step2_low_cardinality entered\n");
 
-  RowReader r(input_rows, input_rows + input_rows_length, verify_set);
+  
   IndividualRowWriterV w(output_rows);
   w.set_self_task_id(verify_set->get_self_task_id());
   NewRecord cur, next;
-  AggregatorType a;
+  
 
   IndividualRowReaderV boundary_info_reader(boundary_info_rows, verify_set);
   AggregatorType boundary_info;
@@ -189,19 +190,37 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
 
   int num_distinct = boundary_info.get_num_distinct();
   int aggregates_per_pass = 4; // TODO Karthik: how many partial aggregates we can fit into memory
-  int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass;
+  int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass + 1;
   // So this would be a buffer that fits into the EPC and we do multiple passes with this?
-  NewRecord *agg_buf = (NewRecord *) malloc(sizeof(NewRecord) * aggregates_per_pass);
+  NewRecord *agg_buf = new NewRecord[aggregates_per_pass];// (NewRecord *) malloc(sizeof(NewRecord) * aggregates_per_pass);
+  // printf("aggregate_step2_low_cardinality allocated buffer at %p\n", (void *) agg_buf);
+  // for (int i = 0; i < aggregates_per_pass; i++) {
+  //   agg_buf[i] = NewRecord();
+  // }
 
-
-
+  printf("aggregate_step2_low_cardinality loop start\n");
+  int writes = 0;
   for (int i = 0; i < num_passes; i++) {
-
+    printf("aggregate_step2_low_cardinality begin pass %d\n", i);
     // fill the buffer with dummies
-    for (int j = 0; j < num_distinct; j++) {
-      a.append_result(&agg_buf[j], true);
-    }
 
+
+    RowReader tempr(input_rows, input_rows + input_rows_length, verify_set);
+    AggregatorType tempa;
+    NewRecord tempnr;
+    tempr.read(&tempnr);
+    tempa.aggregate(&tempnr);    
+    for (int j = 0; j < aggregates_per_pass; j++) {
+      printf("aggregate_step2_low_cardinality setting dummy %d for pass %d\n", j, i);
+      //agg_buf[j].mark_dummy();
+      agg_buf[j].clear();
+      tempa.append_result(&agg_buf[j], true);
+      printf("aggregate_step2_low_cardinality dummy %d set for pass %d\n", j, i);
+    }
+    printf("aggregate_step2_low_cardinality dummies set for pass %d\n", i);
+
+    RowReader r(input_rows, input_rows + input_rows_length, verify_set);
+    AggregatorType a;
     // aggregate the input block
     for (uint32_t j = 0; j < num_rows; j++) {
 
@@ -216,23 +235,30 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
 
       // karthik: only write one partial aggregate per distinct group
       if (a_is_final || j == num_rows - 1) {
-        int agg_buf_index = (boundary_info.get_offset() + a.get_num_distinct()) - (i * aggregates_per_pass);
+        int agg_buf_index = (boundary_info.get_offset() + a.get_num_distinct() - 1) - (i * aggregates_per_pass);
         
         // check if this group belongs in the buffer for this pass
         if (0 <= agg_buf_index && agg_buf_index < aggregates_per_pass) {
           // can the OS see these accesses?
+          printf("lc-agg step 2 writing something to the buffer at position %d\n", agg_buf_index);
+          agg_buf[agg_buf_index].clear();
           a.append_result(&agg_buf[agg_buf_index], false);
         }   
       }
 
     }
-
+    printf("aggregate_step2_low_cardinality rows aggregated for pass %d\n", i);
     // write to the buffer for this pass. The second condition is to account for the tail case on the last pass
     for (int j = 0; j < aggregates_per_pass && (j + (i*aggregates_per_pass)) < num_distinct; j++) {
+      writes++;
       w.write(&agg_buf[j]);
-    }
-  }
+      printf("aggregate_step2_low_cardinality wrote %d rows with %d bytes\n", writes, w.bytes_written());
 
+    }
+    printf("aggregate_step2_low_cardinality output written for pass %d\n", i);
+  }
+  printf("aggregate_step2_low_cardinality wrote %d rows with %d bytes\n", writes, w.bytes_written());
+  delete [] agg_buf;
   w.close();
   *actual_size = w.bytes_written();
 }
@@ -302,13 +328,21 @@ void aggregate_final_low_cardinality(Verify *verify_set,
   for (int i = 0; i < num_rows; i++) {
     NewRecord cur;
     r.read(&cur);
-    res.aggregate(&cur);
+    if (!cur.is_dummy()) {
+      printf("aggregate lc final aggregating a thing\n");
+      res.aggregate(&cur);
+      printf("aggregate lc final aggregated a thing\n");
+    } else {
+      printf("aggregate lc final found a dummy\n");
+    }
   }
   NewRecord out;
+  out.clear();
   res.append_result(&out, false);
   w.write(&out);
   w.close();
   *actual_output_rows_length = w.bytes_written();
+  printf("aggregate_final_low_cardinality wrote %d bytes\n", w.bytes_written());
 }
 
 

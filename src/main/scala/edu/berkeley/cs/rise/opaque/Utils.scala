@@ -338,7 +338,7 @@ object Utils {
 
   def splitBytes(bytes: Array[Byte], numSplits: Int): Array[Array[Byte]] = {
     val splitSize = bytes.length / numSplits
-    assert(numSplits * splitSize == bytes.length)
+    assert(numSplits * splitSize == bytes.length, s"splitBytes failed due to indivisible array... numSplits: $numSplits, splitSize: $splitSize, bytes.length: ${bytes.length}")
     bytes.grouped(splitSize).toArray
   }
 
