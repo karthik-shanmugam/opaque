@@ -238,52 +238,52 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   *actual_size = w.bytes_written();
 }
 
-// karthik: this function should take the partial aggregates from each partition and aggregate them together
-// num_rows should be equal to num_distinct_groups*num_partitions
-// Assumptions:
-// row i*num_distinct_groups + j is partition i's partial aggregate for group j
-// input_rows should be the outputs of all the "aggregate_step2_low_cardinality" calls concatenated together
-template<typename AggregatorType>
-void aggregate_process_boundaries2_low_cardinality(Verify *verify_set,
-                                  uint8_t *input_rows, uint32_t input_rows_length,
-                                  uint32_t num_rows,
-                                  uint8_t *output_rows, uint32_t output_rows_length,
-                                  uint32_t num_distinct_groups, // number of groups for this partition to aggregate
-                                  uint32_t *actual_output_rows_length) {
+// // karthik: this function should take the partial aggregates from each partition and aggregate them together
+// // num_rows should be equal to num_distinct_groups*num_partitions
+// // Assumptions:
+// // row i*num_distinct_groups + j is partition i's partial aggregate for group j
+// // input_rows should be the outputs of all the "aggregate_step2_low_cardinality" calls concatenated together
+// template<typename AggregatorType>
+// void aggregate_process_boundaries2_low_cardinality(Verify *verify_set,
+//                                   uint8_t *input_rows, uint32_t input_rows_length,
+//                                   uint32_t num_rows,
+//                                   uint8_t *output_rows, uint32_t output_rows_length,
+//                                   uint32_t num_distinct_groups, // number of groups for this partition to aggregate
+//                                   uint32_t *actual_output_rows_length) {
 
-  // allocate an aggregator for each group
-  // TODO karthik: Should I try to avoid this malloc somehow?
-  AggregatorType *aggregates = malloc(sizeof(AggregatorType) * num_distinct_groups);
+//   // allocate an aggregator for each group
+//   // TODO karthik: Should I try to avoid this malloc somehow?
+//   AggregatorType *aggregates = malloc(sizeof(AggregatorType) * num_distinct_groups);
 
-  for (int i = 0; i < num_distinct_groups; i++) {
-    aggregates[i] = AggregatorType();
-  }
+//   for (int i = 0; i < num_distinct_groups; i++) {
+//     aggregates[i] = AggregatorType();
+//   }
 
-  RowReader r(input_rows, input_rows + input_rows_length, verify_set);
-  RowWriter w(output_rows);
-  // assumes num_rows = num_partitions * num_distinct_groups
-  for (int i = 0; i < num_rows; i++) {
+//   RowReader r(input_rows, input_rows + input_rows_length, verify_set);
+//   RowWriter w(output_rows);
+//   // assumes num_rows = num_partitions * num_distinct_groups
+//   for (int i = 0; i < num_rows; i++) {
 
-    // index is the index of the group the next row corresponds to
-    int index = i % num_distinct_groups;
+//     // index is the index of the group the next row corresponds to
+//     int index = i % num_distinct_groups;
 
-    NewRecord cur;
-    r.read(&cur);
+//     NewRecord cur;
+//     r.read(&cur);
 
-    if (!cur.is_dummy()) {
-      aggregates[index].aggregate(&cur);     
-    }
+//     if (!cur.is_dummy()) {
+//       aggregates[index].aggregate(&cur);     
+//     }
 
-  }
-  for (int i = 0; i < num_distinct_groups; i++) {
-    NewRecord cur;
-    aggregates[i].append_result(&cur, false);
-    w.write(&cur);
-  }
+//   }
+//   for (int i = 0; i < num_distinct_groups; i++) {
+//     NewRecord cur;
+//     aggregates[i].append_result(&cur, false);
+//     w.write(&cur);
+//   }
 
-  w.close();
-  *actual_size = w.bytes_written();
-}
+//   w.close();
+//   *actual_size = w.bytes_written();
+// }
 
 // Very simple final aggregation step.
 // Input should be all the partial aggregates from step 2 for ONE group
@@ -306,7 +306,7 @@ void aggregate_final_low_cardinality(Verify *verify_set,
   res.append_result(&cur, false);
   w.write(&cur);
   w.close();
-  *actual_size = w.bytes_written();
+  *actual_output_rows_length = w.bytes_written();
 }
 
 

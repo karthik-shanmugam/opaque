@@ -1085,8 +1085,7 @@ JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEncla
   JNIEnv *env, jobject obj, jlong eid,
   jint index, jint num_part,
   jint op_code, jbyteArray input_rows, jint num_rows,
-  jbyteArray boundary_info_row,
-  jint s) {
+  jbyteArray boundary_info_row) {
   (void)obj;
 
   jboolean if_copy;
@@ -1109,7 +1108,6 @@ JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEncla
               input_rows_ptr, input_rows_length,
               num_rows,
               boundary_info_row_ptr, boundary_info_row_length,
-              s,
               output_rows, output_rows_length,
               &actual_size));
 
@@ -1122,6 +1120,50 @@ JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEncla
 
   return ret;
 }
+
+
+JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_AggregateFinalLC(
+  JNIEnv *env,
+  jobject obj,
+  jlong eid,
+  jint index,
+  jint num_part,
+  jint op_code,
+  jbyteArray input_rows,
+  jint num_rows) {
+  (void)obj;
+
+  uint32_t input_rows_length = (uint32_t) env->GetArrayLength(input_rows);
+  jboolean if_copy;
+  uint8_t *input_rows_ptr = (uint8_t *) env->GetByteArrayElements(input_rows, &if_copy);
+
+  uint32_t actual_size = 0;
+
+
+  // TODO karthik how should I compute this???
+  uint32_t output_rows_length = 2048 + 12 + 16 + 2048 + 2048;
+  uint8_t *output_rows = (uint8_t *) malloc(output_rows_length);
+
+  sgx_check("Aggregate Final step LC",
+            ecall_aggregate_final_lc(eid, index, num_part,
+              op_code,
+              input_rows_ptr, input_rows_length,
+              num_rows,
+              output_rows, output_rows_length,
+              &actual_size));
+
+  assert(output_rows_length >= actual_size);
+
+  jbyteArray ret = env->NewByteArray(actual_size);
+  env->SetByteArrayRegion(ret, 0, actual_size, (jbyte *) output_rows);
+
+  env->ReleaseByteArrayElements(input_rows, (jbyte *) input_rows_ptr, 0);
+
+  free(output_rows);
+
+  return ret;
+}
+
 
 // this can be run twice, one locally and one after collect is called
 JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_GlobalAggregate(
