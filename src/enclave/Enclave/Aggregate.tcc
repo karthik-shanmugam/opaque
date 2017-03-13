@@ -322,6 +322,21 @@ void aggregate_final_low_cardinality(Verify *verify_set,
   (void) input_rows_length;
   (void) output_rows_length;
 
+
+  //TODO Karthik DELETE THIS SHORTCUT ITS FOR DEBUGGING
+  // if (num_rows == 1) {
+  //   printf("only one row in final step...\n");
+  //   IndividualRowReaderV r(input_rows, verify_set);
+  //   RowWriter w(output_rows);
+  //   NewRecord temp;
+  //   r.read(&temp);
+  //   w.write(&temp);
+  //   w.close();
+  //   *actual_output_rows_length = w.bytes_written();
+  //   printf("aggregate_final_low_cardinality wrote %d bytes\n using shortcut\n", w.bytes_written());
+
+  // }
+
   AggregatorType res = AggregatorType();
   IndividualRowReaderV r(input_rows, verify_set);
   RowWriter w(output_rows);
