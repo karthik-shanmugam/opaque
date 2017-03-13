@@ -390,7 +390,8 @@ case class ObliviousAggregateExec(
     import Opcode._
     val s = 10 // TODO Karthik: This is the number of partitions for parallelizing the final step
                //               Step two needs this number to know how to break its output into blocks
-               //               Is this even the right way to approach this? Also how do I go about computing this?    val (aggStep1Opcode, aggStep2Opcode, aggDummySortOpcode, aggDummyFilterOpcode) =
+               //               Is this even the right way to approach this? Also how do I go about computing this?    
+    val (aggStep1Opcode, aggStep2Opcode, aggDummySortOpcode, aggDummyFilterOpcode) =
       (groupingExpressions, aggExpressions) match {
         case (Seq(Col(1, _)), Seq(Col(1, _),
           Alias(AggregateExpression(Sum(Col(2, IntegerType)), _, false, _), _))) =>
@@ -717,7 +718,7 @@ case class ObliviousAggregateExecLowCardinality(
     val processedBoundaries = Utils.splitBytes(processedBoundariesConcat, boundariesCollected.length)
     val processedBoundariesRDD = sparkContext.parallelize(processedBoundaries, childRDD.partitions.length)
     // Karthik: No longer zipping the output of step two
-    val partialAggregates = childRDD.map(processedBoundariesRDD) {
+    val partialAggregates = childRDD.zipPartitions(processedBoundariesRDD) {
       (blockIter, boundaryIter) =>
         val blockArray = blockIter.toArray
         assert(blockArray.length == 1)
@@ -728,38 +729,41 @@ case class ObliviousAggregateExecLowCardinality(
         val (enclave, eid) = Utils.initEnclave()
         assert(block.numRows > 0)
         val partialAgg = enclave.AggregateStep2LC(
-          eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows, boundaryRecord, s)
+          eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows, boundaryRecord)
         assert(partialAgg.nonEmpty,
-          s"enclave.AggregateStep2($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}, ${boundaryRecord.length}, ${s}) returned empty result")
-        partialAgg
-        //Iterator(Block(partialAgg, block.numRows))
+          s"enclave.AggregateStep2($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}, ${boundaryRecord.length}) returned empty result")
+        // TODO karthik: is this correct?
+        Iterator(Block(partialAgg, numDistinctGroups.value))
     }
     Utils.ensureCached(partialAggregates)
     time("aggregate - step 2") { partialAggregates.count }
 
     // TODO Karthik: should I reduce by key instead?
     val shuffledPartialAggregates = partialAggregates.flatMap {block =>
-      Utils.splitBytes(block, numDistinctGroups.value).zipWithIndex.map{(block, i) => (i, block)}
+      Utils.splitBytes(block.bytes, numDistinctGroups.value).zipWithIndex.map{case (block_bytes, i) => (i, block_bytes)}
     }.groupByKey(numDistinctGroups.value).map {
-      case (i, blocks) =>
-        Utils.concatByteArrays(blocks)
+      case (i, blocks_bytes) =>
+        val blocks_bytes_collected = blocks_bytes.toArray
+        Block(Utils.concatByteArrays(blocks_bytes_collected), blocks_bytes_collected.length)
     }
 
     val finalAggregates = time("aggregate - aggregate partial aggregates") {
       var result = shuffledPartialAggregates.map { block =>
-        // TODO Karthik: call aggregate_process_boundaries2_low_cardinality (Aggregate.tcc)
         val (enclave, eid) = Utils.initEnclave()
 
-        //TODO make this step work
-        val finalAgg = enclase.AggregateFinalLC(eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows)
+        val finalAgg = enclave.AggregateFinalLC(eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows)
 
         assert(finalAgg.nonEmpty,
           s"enclave.AggregateFinalLC($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}) returned empty result")
         finalAgg
       }.collect
+      result
     }
-    Utils.concatByteArrays(finalAggregates)
+    
+    var a = new Array[Block](1)
+    a(0) = Block(Utils.concatByteArrays(finalAggregates), numDistinctGroups.value)
 
+    return sparkContext.parallelize(a, 1)
     // Sort the partial and final aggregates using a comparator that causes final aggregates to come first
     // val sortedAggregates = time("aggregate - sort dummies") {
     //   val result = ObliviousSortExec.sortBlocks(partialAggregates, aggDummySortOpcode)
