@@ -512,12 +512,13 @@ case class ObliviousAggregateExec(
       return sqlContext.sparkContext.emptyRDD[Block]
     }
     val (enclave, eid) = Utils.initEnclave()
+    val numDistinctGroups = new MutableInteger
     val processedBoundariesConcat = time("aggregate - ProcessBoundary") {
-      val numDistinctGroups = new MutableInteger
       enclave.ProcessBoundary(
         eid, aggStep1Opcode.value,
         Utils.concatByteArrays(boundariesCollected), boundariesCollected.length, numDistinctGroups)
     }
+    println(s"[aggregate-debug] numDistinctGroups: ${numDistinctGroups.value}")
 
     // Send processed boundaries to partitions and generate a mix of partial and final aggregates
     val processedBoundaries = Utils.splitBytes(processedBoundariesConcat, boundariesCollected.length)
