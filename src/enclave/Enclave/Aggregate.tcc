@@ -169,7 +169,6 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
                      uint8_t *input_rows, uint32_t input_rows_length,
                      uint32_t num_rows,
                      uint8_t *boundary_info_rows, uint32_t boundary_info_rows_length,
-                     uint32_t s, // s is number of paritions in next step
                      uint8_t *output_rows, uint32_t output_rows_length,
                      uint32_t *actual_size) {
   (void)boundary_info_rows_length;
@@ -199,7 +198,7 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   for (int i = 0; i < num_passes; i++) {
 
     // fill the buffer with dummies
-    for (int j = 0; j < num_distinct_groups; j++) {
+    for (int j = 0; j < num_distinct; j++) {
       a.append_result(&agg_buf[j], true);
     }
 
@@ -229,7 +228,7 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
     }
 
     // write to the buffer for this pass. The second condition is to account for the tail case on the last pass
-    for (int j = 0; j < aggregates_per_pass && (j + (i*aggregates_per_pass)) < num_distinct_groups; j++) {
+    for (int j = 0; j < aggregates_per_pass && (j + (i*aggregates_per_pass)) < num_distinct; j++) {
       w.write(&agg_buf[j]);
     }
   }
