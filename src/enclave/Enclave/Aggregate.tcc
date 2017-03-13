@@ -324,7 +324,7 @@ void aggregate_final_low_cardinality(Verify *verify_set,
 
   AggregatorType res = AggregatorType();
   IndividualRowReaderV r(input_rows, verify_set);
-  IndividualRowWriterV w(output_rows);
+  RowWriter w(output_rows);
   for (int i = 0; i < num_rows; i++) {
     NewRecord cur;
     r.read(&cur);

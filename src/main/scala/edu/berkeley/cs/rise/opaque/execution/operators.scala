@@ -771,7 +771,9 @@ case class ObliviousAggregateExecLowCardinality(
     var a = new Array[Block](1)
     println("concatenating final output")
     a(0) = Block(Utils.concatByteArrays(finalAggregates), numDistinctGroups)
-    println("concatenated final output")
+    println(s"concatenated final output size is ${a(0).bytes.length} numRows is ${a(0).numRows}")
+    println(s"first byte of final output is ${a(0).bytes(0)}")
+    println(s"last byte of final output is ${a(0).bytes(a(0).bytes.length - 1)}")
     return sparkContext.parallelize(a, 1)
     // Sort the partial and final aggregates using a comparator that causes final aggregates to come first
     // val sortedAggregates = time("aggregate - sort dummies") {
