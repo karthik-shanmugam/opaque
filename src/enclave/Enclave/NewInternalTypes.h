@@ -624,6 +624,10 @@ public:
     this->offset = offset;
   }
 
+  uint32_t get_offset() {
+    return offset;
+  }
+
   bool grouping_attrs_equal(Aggregator2 *other) {
     return g.equals(&other->g);
   }
@@ -754,6 +758,10 @@ public:
 
   void set_offset(uint32_t offset) {
     this->offset = offset;
+  }
+
+  uint32_t get_offset() {
+    return offset;
   }
 
   bool grouping_attrs_equal(Aggregator3 *other) {
@@ -906,6 +914,10 @@ public:
 
   void set_offset(uint32_t offset) {
     this->offset = offset;
+  }
+
+  uint32_t get_offset() {
+    return offset;
   }
 
   bool grouping_attrs_equal(Aggregator5 *other) {

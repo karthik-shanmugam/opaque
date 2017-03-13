@@ -188,10 +188,10 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   boundary_info_reader.read(&next_partition_first_row);
 
   int num_distinct = boundary_info.get_num_distinct();
-  int aggregates_per_pass; // TODO Karthik: how many partial aggregates we can fit into memory
+  int aggregates_per_pass = 4; // TODO Karthik: how many partial aggregates we can fit into memory
   int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass;
   // So this would be a buffer that fits into the EPC and we do multiple passes with this?
-  NewRecord *agg_buf = malloc(sizeof(NewRecord) * aggregates_per_pass);
+  NewRecord *agg_buf = (NewRecord *) malloc(sizeof(NewRecord) * aggregates_per_pass);
 
 
 
@@ -293,8 +293,11 @@ void aggregate_final_low_cardinality(Verify *verify_set,
                                   uint32_t num_rows,
                                   uint8_t *output_rows, uint32_t output_rows_length,
                                   uint32_t *actual_output_rows_length) {
+  (void) input_rows_length;
+  (void) output_rows_length;
+
   AggregatorType res = AggregatorType();
-  IndividualRowReaderV r(input_rows, input_rows + input_rows_length, verify_set);
+  IndividualRowReaderV r(input_rows, verify_set);
   IndividualRowWriterV w(output_rows);
   for (int i = 0; i < num_rows; i++) {
     NewRecord cur;
@@ -302,8 +305,8 @@ void aggregate_final_low_cardinality(Verify *verify_set,
     res.aggregate(&cur);
   }
   NewRecord out;
-  res.append_result(&cur, false);
-  w.write(&cur);
+  res.append_result(&out, false);
+  w.write(&out);
   w.close();
   *actual_output_rows_length = w.bytes_written();
 }
