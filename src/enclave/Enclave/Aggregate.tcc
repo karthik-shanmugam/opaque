@@ -192,7 +192,7 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   int aggregates_per_pass = 4; // TODO Karthik: how many partial aggregates we can fit into memory
   int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass + 1;
   // So this would be a buffer that fits into the EPC and we do multiple passes with this?
-  NewRecord *agg_buf = new NewRecord[aggregates_per_pass];// (NewRecord *) malloc(sizeof(NewRecord) * aggregates_per_pass);
+  //NewRecord *agg_buf = new NewRecord[aggregates_per_pass];// (NewRecord *) malloc(sizeof(NewRecord) * aggregates_per_pass);
   AggregatorType *agg_buf = new AggregatorType[aggregates_per_pass];
   // printf("aggregate_step2_low_cardinality allocated buffer at %p\n", (void *) agg_buf);
   // for (int i = 0; i < aggregates_per_pass; i++) {

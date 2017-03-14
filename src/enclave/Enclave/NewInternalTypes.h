@@ -1119,7 +1119,7 @@ public:
   }
 
   bool is_dummy() {
-    return this->attr == NULL;
+    return this->attr1 == NULL || this->attr2 == NULL;
   }
 
   /** Write the grouping attributes by appending them to the given record. */
