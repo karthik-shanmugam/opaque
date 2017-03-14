@@ -517,6 +517,10 @@ public:
     }
   }
 
+  bool is_dummy() {
+    return g.is_dummy();
+  }
+
   void print() {
     printf("Aggregator1[num_distinct=%d, offset=%d, g=");
     g.print();
@@ -639,6 +643,10 @@ public:
       GroupByType g2(record);
       return g.equals(&g2);
     }
+  }
+
+  bool is_dummy() {
+    return g.is_dummy();
   }
 
   void print() {
@@ -775,6 +783,10 @@ public:
       GroupByType g2(record);
       return g.equals(&g2);
     }
+  }
+
+  bool is_dummy() {
+    return g.is_dummy();
   }
 
   void print() {
@@ -933,6 +945,10 @@ public:
     }
   }
 
+  bool is_dummy() {
+    return g.is_dummy();
+  }
+
   void print() {
     printf("Aggregator5[num_distinct=%d, offset=%d, g=");
     g.print();
@@ -1013,6 +1029,10 @@ public:
     } else {
       return false;
     }
+  }
+
+  bool is_dummy() {
+    return this->attr == NULL;
   }
 
   /** Write the grouping attribute by appending it to the given record. */
@@ -1096,6 +1116,10 @@ public:
     } else {
       return false;
     }
+  }
+
+  bool is_dummy() {
+    return this->attr == NULL;
   }
 
   /** Write the grouping attributes by appending them to the given record. */

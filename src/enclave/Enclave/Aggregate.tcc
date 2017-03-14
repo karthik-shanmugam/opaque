@@ -193,6 +193,7 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass + 1;
   // So this would be a buffer that fits into the EPC and we do multiple passes with this?
   NewRecord *agg_buf = new NewRecord[aggregates_per_pass];// (NewRecord *) malloc(sizeof(NewRecord) * aggregates_per_pass);
+  AggregatorType *agg_buf = new AggregatorType[aggregates_per_pass];
   // printf("aggregate_step2_low_cardinality allocated buffer at %p\n", (void *) agg_buf);
   // for (int i = 0; i < aggregates_per_pass; i++) {
   //   agg_buf[i] = NewRecord();
@@ -205,16 +206,17 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
     // fill the buffer with dummies
 
 
-    RowReader tempr(input_rows, input_rows + input_rows_length, verify_set);
-    AggregatorType tempa;
-    NewRecord tempnr;
-    tempr.read(&tempnr);
-    tempa.aggregate(&tempnr);    
+    // RowReader tempr(input_rows, input_rows + input_rows_length, verify_set);
+    // AggregatorType tempa;
+    // NewRecord tempnr;
+    // tempr.read(&tempnr);
+    // tempa.aggregate(&tempnr);    
     for (int j = 0; j < aggregates_per_pass; j++) {
       printf("aggregate_step2_low_cardinality setting dummy %d for pass %d\n", j, i);
       //agg_buf[j].mark_dummy();
-      agg_buf[j].clear();
-      tempa.append_result(&agg_buf[j], true);
+      // agg_buf[j].clear();
+      // tempa.append_result(&agg_buf[j], true);
+      agg_buf[j] = AggregatorType();
       printf("aggregate_step2_low_cardinality dummy %d set for pass %d\n", j, i);
     }
     printf("aggregate_step2_low_cardinality dummies set for pass %d\n", i);
@@ -240,9 +242,10 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
         // check if this group belongs in the buffer for this pass
         if (0 <= agg_buf_index && agg_buf_index < aggregates_per_pass) {
           // can the OS see these accesses?
-          printf("lc-agg step 2 writing something to the buffer at position %d\n", agg_buf_index);
-          agg_buf[agg_buf_index].clear();
-          a.append_result(&agg_buf[agg_buf_index], false);
+          // printf("lc-agg step 2 writing something to the buffer at position %d\n", agg_buf_index);
+          // agg_buf[agg_buf_index].clear();
+          // a.append_result(&agg_buf[agg_buf_index], false);
+          agg_buf[agg_buf_index].set(&a);
         }   
       }
 
@@ -338,10 +341,11 @@ void aggregate_final_low_cardinality(Verify *verify_set,
   // }
 
   AggregatorType res = AggregatorType();
+
   IndividualRowReaderV r(input_rows, verify_set);
   RowWriter w(output_rows);
   for (int i = 0; i < num_rows; i++) {
-    NewRecord cur;
+    AggregatorType cur;
     r.read(&cur);
     if (!cur.is_dummy()) {
       printf("aggregate lc final aggregating a thing\n");
