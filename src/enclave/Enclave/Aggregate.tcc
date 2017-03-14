@@ -193,7 +193,7 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass + 1;
   // So this would be a buffer that fits into the EPC and we do multiple passes with this?
   //NewRecord *agg_buf = new NewRecord[aggregates_per_pass];// (NewRecord *) malloc(sizeof(NewRecord) * aggregates_per_pass);
-  AggregatorType *agg_buf = new AggregatorType[aggregates_per_pass];
+  //AggregatorType *agg_buf;// = new AggregatorType[aggregates_per_pass];//(AggregatorType *) malloc(sizeof(AggregatorType) * aggregates_per_pass); 
   // printf("aggregate_step2_low_cardinality allocated buffer at %p\n", (void *) agg_buf);
   // for (int i = 0; i < aggregates_per_pass; i++) {
   //   agg_buf[i] = NewRecord();
@@ -211,14 +211,22 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
     // NewRecord tempnr;
     // tempr.read(&tempnr);
     // tempa.aggregate(&tempnr);    
-    for (int j = 0; j < aggregates_per_pass; j++) {
-      printf("aggregate_step2_low_cardinality setting dummy %d for pass %d\n", j, i);
-      //agg_buf[j].mark_dummy();
-      // agg_buf[j].clear();
-      // tempa.append_result(&agg_buf[j], true);
-      agg_buf[j] = AggregatorType();
-      printf("aggregate_step2_low_cardinality dummy %d set for pass %d\n", j, i);
-    }
+    // for (int j = 0; j < aggregates_per_pass; j++) {
+    //   printf("aggregate_step2_low_cardinality setting dummy %d for pass %d\n", j, i);
+    //   //agg_buf[j].mark_dummy();
+    //   // agg_buf[j].clear();
+    //   // tempa.append_result(&agg_buf[j], true);
+    //   //agg_buf[j] = AggregatorType();
+    //   agg_buf[j].print();
+    //   printf("aggregate_step2_low_cardinality dummy %d set for pass %d\n", j, i);
+    // }
+
+    // TODO dispose of this correctly
+    AggregatorType* agg_buf = new AggregatorType[aggregates_per_pass];
+    
+    //std::vector<AggregatorType>  agg_buf;//(aggregates_per_pass, AggregatorType());//arr(num, MyClass(10,20));
+    
+    //agg_buf.resize(aggregates_per_pass);
     printf("aggregate_step2_low_cardinality dummies set for pass %d\n", i);
 
     RowReader r(input_rows, input_rows + input_rows_length, verify_set);
@@ -246,6 +254,18 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
           // agg_buf[agg_buf_index].clear();
           // a.append_result(&agg_buf[agg_buf_index], false);
           agg_buf[agg_buf_index].set(&a);
+          printf("setting %d\n", agg_buf_index);
+          a.print();
+          printf("into\n");
+          agg_buf[agg_buf_index].print();
+
+              // for (int k = 0; k < aggregates_per_pass; k++) {
+              //   printf("aggregate_step2_low_cardinality printing partial %d for pass %d\n", k, i);
+              //   //agg_buf[k].mark_dummy();
+              //   // agg_buf[k].clear();
+              //   // tempa.append_result(&agg_buf[k], true);
+              //   agg_buf[k].print();
+              // }
         }   
       }
 
@@ -256,14 +276,19 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
       writes++;
       w.write(&agg_buf[j]);
       printf("aggregate_step2_low_cardinality wrote %d rows with %d bytes\n", writes, w.bytes_written());
-
+      agg_buf[j].print();
     }
     printf("aggregate_step2_low_cardinality output written for pass %d\n", i);
   }
+  printf("aggregate_step2_low_cardinality wtf\n");
   printf("aggregate_step2_low_cardinality wrote %d rows with %d bytes\n", writes, w.bytes_written());
-  delete [] agg_buf;
+  //free((void *) agg_buf);
+  printf("aggregate_step2_low_cardinality done 0\n");
   w.close();
+  printf("aggregate_step2_low_cardinality done 1\n");
   *actual_size = w.bytes_written();
+  printf("aggregate_step2_low_cardinality done 2\n");
+
 }
 
 // // karthik: this function should take the partial aggregates from each partition and aggregate them together
@@ -347,9 +372,16 @@ void aggregate_final_low_cardinality(Verify *verify_set,
   for (int i = 0; i < num_rows; i++) {
     AggregatorType cur;
     r.read(&cur);
+    // if (res.is_dummy() && !cur.is_dummy()) {
+    //   res.set(&cur);
+    // }
     if (!cur.is_dummy()) {
       printf("aggregate lc final aggregating a thing\n");
-      res.aggregate(&cur);
+      if (res.is_dummy()) {
+        res.set(&cur);
+      } else {
+        res.aggregate(&cur);
+      }
       printf("aggregate lc final aggregated a thing\n");
     } else {
       printf("aggregate lc final found a dummy\n");

@@ -522,7 +522,7 @@ public:
   }
 
   void print() {
-    printf("Aggregator1[num_distinct=%d, offset=%d, g=");
+    printf("Aggregator1[num_distinct=%d, offset=%d, g=", num_distinct, offset);
     g.print();
     printf(", a1=");
     a1.print();

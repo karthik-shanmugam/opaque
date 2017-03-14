@@ -363,7 +363,7 @@ uint32_t NewRecord::write_encrypted(uint8_t *output) {
 void NewRecord::print() const {
   const uint8_t *row_ptr = this->row;
 
-  printf("NewRecord[num_attrs=%d", *( (const uint32_t *) (row_ptr)));
+  printf("NewRecord[row_ptr=%p, num_attrs=%d", row_ptr, *( (const uint32_t *) (row_ptr)));
   row_ptr += 4;
 
   for (uint32_t i = 0; i < this->num_cols(); i++) {
