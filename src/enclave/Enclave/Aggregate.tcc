@@ -278,6 +278,7 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
       printf("aggregate_step2_low_cardinality wrote %d rows with %d bytes\n", writes, w.bytes_written());
       agg_buf[j].print();
     }
+    delete[] agg_buf;
     printf("aggregate_step2_low_cardinality output written for pass %d\n", i);
   }
   printf("aggregate_step2_low_cardinality wtf\n");
