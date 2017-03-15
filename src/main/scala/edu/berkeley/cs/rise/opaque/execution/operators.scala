@@ -510,11 +510,13 @@ case class ObliviousAggregateExec(
       return sqlContext.sparkContext.emptyRDD[Block]
     }
     val (enclave, eid) = Utils.initEnclave()
+    println("[Aggregate debug] calling ProcessBoundary")
     val processedBoundariesConcat = time("aggregate - ProcessBoundary") {
       enclave.ProcessBoundary(
         eid, aggStep1Opcode.value,
         Utils.concatByteArrays(boundariesCollected), boundariesCollected.length)
     }
+    println("[Aggregate debug] ProcessBoundary returned successfully")
 
     // Send processed boundaries to partitions and generate a mix of partial and final aggregates
     val processedBoundaries = Utils.splitBytes(processedBoundariesConcat, boundariesCollected.length)
