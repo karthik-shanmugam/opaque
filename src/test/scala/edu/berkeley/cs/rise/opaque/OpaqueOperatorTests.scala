@@ -135,13 +135,13 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
   //   words.select($"word", $"count" + 1).collect
   // }
 
-  def abc(i: Int): String = (i % 3) match {
-    case 0 => "A"
-    case 1 => "B"
-    case 2 => "C"
-  }
+  // def abc(i: Int): String = (i % 3) match {
+  //   case 0 => "A"
+  //   case 1 => "B"
+  //   case 2 => "C"
+  // }
 
-  def alphabet(i: Int): String = {
+  def abc(i: Int): String = {
     ('A' + (i % 26)).toString
   }
 
@@ -153,13 +153,13 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
       .collect.sortBy { case Row(word: String, _) => word }
   }
 
-  testAgainstSpark("aggregate alphabet") { securityLevel =>
-    val data = for (i <- 0 until 256) yield (i, alphabet(i), 1)
-    val words = makeDF(data, securityLevel, "id", "word", "count")
+  // testAgainstSpark("aggregate alphabet") { securityLevel =>
+  //   val data = for (i <- 0 until 256) yield (i, alphabet(i), 1)
+  //   val words = makeDF(data, securityLevel, "id", "word", "count")
 
-    words.groupBy("word").agg(sum("count").as("totalCount"))
-      .collect.sortBy { case Row(word: String, _) => word }
-  }
+  //   words.groupBy("word").agg(sum("count").as("totalCount"))
+  //     .collect.sortBy { case Row(word: String, _) => word }
+  // }
 
   testAgainstSpark("aggregate on multiple columns") { securityLevel =>
     val data = for (i <- 0 until 256) yield (abc(i), 1, 1.0f)
@@ -235,14 +235,14 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
 
 }
 
-// class OpaqueSinglePartitionSuite extends OpaqueOperatorTests {
-//   override val spark = SparkSession.builder()
-//     .master("local[1]")
-//     .appName("QEDSuite")
-//     .getOrCreate()
+class OpaqueSinglePartitionSuite extends OpaqueOperatorTests {
+  override val spark = SparkSession.builder()
+    .master("local[1]")
+    .appName("QEDSuite")
+    .getOrCreate()
 
-//   override def numPartitions = 1
-// }
+  override def numPartitions = 1
+}
 
 class OpaqueMultiplePartitionSuite extends OpaqueOperatorTests {
   override val spark = SparkSession.builder()
@@ -251,4 +251,13 @@ class OpaqueMultiplePartitionSuite extends OpaqueOperatorTests {
     .getOrCreate()
 
   override def numPartitions = 3
+}
+
+class OpaqueBiggerMultiplePartitionSuite extends OpaqueOperatorTests {
+  override val spark = SparkSession.builder()
+    .master("local[5]")
+    .appName("QEDSuite")
+    .getOrCreate()
+
+  override def numPartitions = 5
 }

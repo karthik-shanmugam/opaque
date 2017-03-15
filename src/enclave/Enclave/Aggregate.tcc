@@ -44,7 +44,7 @@ void aggregate_process_boundaries(Verify *verify_set,
 
   // 1. Calculate the global number of distinct items, compensating for runs that span partition
   // boundaries
-
+  printf("pb debug first loop start\n");
   uint32_t num_distinct = 0;
   {
     AggregatorType prev_last_agg, cur_last_agg;
@@ -53,8 +53,11 @@ void aggregate_process_boundaries(Verify *verify_set,
     for (uint32_t i = 0; i < num_rows; i++) {
       if (i > 0) prev_last_agg.set(&cur_last_agg);
 
+      printf("pb debug first loop r0\n");
       r.read(&cur_first_row);
+      printf("pb debug first loop r1\n");
       r.read(&cur_last_agg);
+      printf("pb debug first loop r2\n");
 
       num_distinct += cur_last_agg.get_num_distinct();
       if (i > 0 && prev_last_agg.grouping_attrs_equal(&cur_first_row)) {
@@ -64,6 +67,8 @@ void aggregate_process_boundaries(Verify *verify_set,
       }
     }
   }
+
+  printf("pb debug first loop done\n");
 
   // 2. Send the following items to each partition:
   //    (a) global number of distinct items,
@@ -112,7 +117,7 @@ void aggregate_process_boundaries(Verify *verify_set,
       w.write(&cur_first_row);
     }
   }
-
+  printf("pb debug second loop done\n");
   w.close();
   *actual_output_rows_length = w.bytes_written();
   *num_distinct_groups = num_distinct;
@@ -174,8 +179,6 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   (void)boundary_info_rows_length;
   (void)output_rows_length;
 
-  printf("aggregate_step2_low_cardinality entered\n");
-
   
   IndividualRowWriterV w(output_rows);
   w.set_self_task_id(verify_set->get_self_task_id());
@@ -192,10 +195,8 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   int aggregates_per_pass = 4; // TODO Karthik: how many partial aggregates we can fit into memory
   int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass + 1;
 
-  printf("aggregate_step2_low_cardinality loop start\n");
   int writes = 0;
   for (int i = 0; i < num_passes; i++) {
-    printf("aggregate_step2_low_cardinality begin pass %d\n", i);
 
     AggregatorType* agg_buf = new AggregatorType[aggregates_per_pass];
     RowReader r(input_rows, input_rows + input_rows_length, verify_set);
@@ -231,27 +232,20 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
 
         // compute the correct index into our buffer for this group
         int agg_buf_index = (offset + a.get_num_distinct() - 1) - (i * aggregates_per_pass);
-        printf("abi is %d from off %d, distinct %d, i %d, app %d\n", agg_buf_index, offset, a.get_num_distinct(), i, aggregates_per_pass);
         
         // check if this group belongs in the buffer for this pass
         if (0 <= agg_buf_index && agg_buf_index < aggregates_per_pass) {
           agg_buf[agg_buf_index].set(&a);
-          printf("setting %d\n", agg_buf_index);
-          a.print();
-          agg_buf[agg_buf_index].print();
         }   
       }
 
     }
-    printf("aggregate_step2_low_cardinality rows aggregated for pass %d\n", i);
     // write to the buffer for this pass. The second condition is to account for the tail case on the last pass
     for (int j = 0; j < aggregates_per_pass && (j + (i*aggregates_per_pass)) < num_distinct; j++) {
       writes++;
       w.write(&agg_buf[j]);
-      printf("aggregate_step2_low_cardinality wrote %d rows with %d bytes\n", writes, w.bytes_written());
     }
     delete[] agg_buf;
-    printf("aggregate_step2_low_cardinality output written for pass %d\n", i);
   }
   w.close();
   *actual_size = w.bytes_written();
@@ -280,15 +274,11 @@ void aggregate_final_low_cardinality(Verify *verify_set,
     AggregatorType cur;
     r.read(&cur);
     if (!cur.is_dummy()) {
-      printf("aggregate lc final aggregating a thing\n");
       if (res.is_dummy()) {
         res.set(&cur);
       } else {
         res.aggregate(&cur);
       }
-      printf("aggregate lc final aggregated a thing\n");
-    } else {
-      printf("aggregate lc final found a dummy\n");
     }
   }
   NewRecord out;
@@ -297,7 +287,6 @@ void aggregate_final_low_cardinality(Verify *verify_set,
   w.write(&out);
   w.close();
   *actual_output_rows_length = w.bytes_written();
-  printf("aggregate_final_low_cardinality wrote %d bytes\n", w.bytes_written());
 }
 
 

@@ -1169,9 +1169,7 @@ public:
 
   /** Add in the value from a single record. */
   void add(NewRecord *record) {
-    //printf("incrementing sum from NewRecord from %f", (float) sum);
     sum += *reinterpret_cast<const InType *>(record->get_attr_value(Column));
-    //printf(" to %f\n", (float) sum);
   }
 
   /** Combine the value from another Sum object. */
@@ -1181,7 +1179,6 @@ public:
 
   /** Read a partial sum (one plaintext attribute) and return the number of bytes read. */
   uint32_t read_partial_result(uint8_t *input) {
-    printf("reading partial sum\n");
     return read_attr<OutType>(input, reinterpret_cast<uint8_t *>(&sum));
   }
 
@@ -1192,7 +1189,6 @@ public:
 
   /** Write the final sum by appending it to the given record. */
   void append_result(NewRecord *rec, bool dummy) const {
-    printf("SUM is about to append the result %f\n", (float) sum);
     rec->add_attr_val<OutType>(sum, dummy);
   }
 

@@ -710,6 +710,7 @@ case class ObliviousAggregateExecLowCardinality(
     }
     val (enclave, eid) = Utils.initEnclave()
     val numDistinctGroupsMutable = new MutableInteger
+    println("[lc-agg debug] processing boundaries now")
     val processedBoundariesConcat = time("aggregate - ProcessBoundary") {
       enclave.ProcessBoundary(
         eid, aggStep1Opcode.value,
@@ -758,12 +759,9 @@ case class ObliviousAggregateExecLowCardinality(
     val finalAggregates = time("aggregate - aggregate partial aggregates") {
       var result = shuffledPartialAggregates.map { block =>
         val (enclave, eid) = Utils.initEnclave()
-        println(s"gonna aggregate ${block.bytes.length} bytes with ${block.numRows} rows")
         val finalAgg = enclave.AggregateFinalLC(eid, 0, 0, aggStep1Opcode.value, block.bytes, block.numRows)
-        println(s"aggregated ${block.bytes.length} bytes with ${block.numRows} rows")
         assert(finalAgg.nonEmpty,
           s"enclave.AggregateFinalLC($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}) returned empty result")
-        println(s"got back an array of size ${finalAgg.length}")
         finalAgg
       }.collect
       result
@@ -773,8 +771,6 @@ case class ObliviousAggregateExecLowCardinality(
     println("concatenating final output")
     a(0) = Block(Utils.concatByteArrays(finalAggregates), numDistinctGroups)
     println(s"concatenated final output size is ${a(0).bytes.length} numRows is ${a(0).numRows}")
-    println(s"first byte of final output is ${a(0).bytes(0)}")
-    println(s"last byte of final output is ${a(0).bytes(a(0).bytes.length - 1)}")
     return sparkContext.parallelize(a, 1)
     // Sort the partial and final aggregates using a comparator that causes final aggregates to come first
     // val sortedAggregates = time("aggregate - sort dummies") {
