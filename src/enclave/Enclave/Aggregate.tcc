@@ -192,8 +192,9 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   boundary_info_reader.read(&next_partition_first_row);
 
   int num_distinct = boundary_info.get_num_distinct();
-  int aggregates_per_pass = 4; // TODO Karthik: how many partial aggregates we can fit into memory
+  int aggregates_per_pass = 2*MAX_SORT_BUFFER/AGG_UPPER_BOUND; // TODO Karthik: how many partial aggregates we can fit into memory
   int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass + 1;
+  printf("[aggregate_step2_low_cardinality] performing %d passes with a max of %d aggregates per pass\n", num_passes, aggregates_per_pass);
 
   int writes = 0;
   for (int i = 0; i < num_passes; i++) {
