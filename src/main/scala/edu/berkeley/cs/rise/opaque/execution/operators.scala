@@ -388,9 +388,7 @@ case class ObliviousAggregateExec(
 
   override def executeBlocked(): RDD[Block] = {
     import Opcode._
-    val s = 10 // TODO Karthik: This is the number of partitions for parallelizing the final step
-               //               Step two needs this number to know how to break its output into blocks
-               //               Is this even the right way to approach this? Also how do I go about computing this?    
+
     val (aggStep1Opcode, aggStep2Opcode, aggDummySortOpcode, aggDummyFilterOpcode) =
       (groupingExpressions, aggExpressions) match {
         case (Seq(Col(1, _)), Seq(Col(1, _),
@@ -496,203 +494,6 @@ case class ObliviousAggregateExec(
       return sparkContext.parallelize(a, 1)
     }
 
-    time("aggregate - force child") { childRDD.count }
-    // Process boundaries
-    RA.initRA(childRDD)
-    val boundaries = childRDD.map { block =>
-      val (enclave, eid) = Utils.initEnclave()
-      val boundary = enclave.AggregateStep1(
-        eid, 0, 0, aggStep1Opcode.value, block.bytes, block.numRows)
-      // enclave.StopEnclave(eid)
-      boundary
-    }
-
-    val boundariesCollected = time("aggregate - step 1") { boundaries.collect }
-    if (boundariesCollected.forall(_.isEmpty)) {
-      return sqlContext.sparkContext.emptyRDD[Block]
-    }
-    val (enclave, eid) = Utils.initEnclave()
-    val numDistinctGroups = new MutableInteger
-    val processedBoundariesConcat = time("aggregate - ProcessBoundary") {
-      enclave.ProcessBoundary(
-        eid, aggStep1Opcode.value,
-        Utils.concatByteArrays(boundariesCollected), boundariesCollected.length, numDistinctGroups)
-    }
-    println(s"[aggregate-debug] numDistinctGroups: ${numDistinctGroups.value}")
-
-    // Send processed boundaries to partitions and generate a mix of partial and final aggregates
-    val processedBoundaries = Utils.splitBytes(processedBoundariesConcat, boundariesCollected.length)
-    val processedBoundariesRDD = sparkContext.parallelize(processedBoundaries, childRDD.partitions.length)
-    val partialAggregates = childRDD.zipPartitions(processedBoundariesRDD) {
-      (blockIter, boundaryIter) =>
-        val blockArray = blockIter.toArray
-        assert(blockArray.length == 1)
-        val block = blockArray.head
-        val boundaryArray = boundaryIter.toArray
-        assert(boundaryArray.length == 1)
-        val boundaryRecord = boundaryArray.head
-        val (enclave, eid) = Utils.initEnclave()
-        assert(block.numRows > 0)
-        val partialAgg = enclave.AggregateStep2(
-          eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows, boundaryRecord)
-        assert(partialAgg.nonEmpty,
-          s"enclave.AggregateStep2($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}, ${boundaryRecord.length}) returned empty result")
-        Iterator(Block(partialAgg, block.numRows))
-    }
-
-    Utils.ensureCached(partialAggregates)
-    time("aggregate - step 2") { partialAggregates.count }
-
-    // Sort the partial and final aggregates using a comparator that causes final aggregates to come first
-    val sortedAggregates = time("aggregate - sort dummies") {
-      val result = ObliviousSortExec.sortBlocks(partialAggregates, aggDummySortOpcode)
-      Utils.ensureCached(result)
-      result.count
-      result
-    }
-
-    // Filter out the non-final aggregates
-    val finalAggregates = time("aggregate - filter out dummies") {
-      val result = sortedAggregates.map { block =>
-        val (enclave, eid) = Utils.initEnclave()
-        val numOutputRows = new MutableInteger
-        val filtered = enclave.Filter(
-          eid, 0, 0, aggDummyFilterOpcode.value, block.bytes, block.numRows, numOutputRows)
-        Block(filtered, numOutputRows.value)
-      }
-      Utils.ensureCached(result)
-      result.count
-      result
-    }
-    finalAggregates
-  }
-}
-
-case class ObliviousAggregateExecLowCardinality(
-    groupingExpressions: Seq[Expression],
-    aggExpressions: Seq[NamedExpression],
-    child: SparkPlan)
-  extends UnaryExecNode with OpaqueOperatorExec {
-
-  import Utils.time
-
-  private object Col extends ColumnNumberMatcher {
-    override def input: Seq[Attribute] = child.output
-  }
-
-  override def producedAttributes: AttributeSet =
-    AttributeSet(aggExpressions) -- AttributeSet(groupingExpressions)
-
-  override def output: Seq[Attribute] = aggExpressions.map(_.toAttribute)
-
-  override def executeBlocked(): RDD[Block] = {
-    import Opcode._
-    val (aggStep1Opcode, aggStep2Opcode, aggDummySortOpcode, aggDummyFilterOpcode) =
-      (groupingExpressions, aggExpressions) match {
-        case (Seq(Col(1, _)), Seq(Col(1, _),
-          Alias(AggregateExpression(Sum(Col(2, IntegerType)), _, false, _), _))) =>
-          (OP_GROUPBY_COL1_SUM_COL2_INT_STEP1,
-            OP_GROUPBY_COL1_SUM_COL2_INT_STEP2,
-            OP_SORT_COL2_IS_DUMMY_COL1,
-            OP_FILTER_NOT_DUMMY)
-
-        case (Seq(Col(1, _)), Seq(Col(1, _),
-          Alias(AggregateExpression(Sum(Col(2, FloatType)), _, false, _), _))) =>
-          (OP_GROUPBY_COL1_SUM_COL2_FLOAT_STEP1,
-            OP_GROUPBY_COL1_SUM_COL2_FLOAT_STEP2,
-            OP_SORT_COL2_IS_DUMMY_COL1,
-            OP_FILTER_NOT_DUMMY)
-
-        case (Seq(Col(1, _)), Seq(Col(1, _),
-          Alias(AggregateExpression(Min(Col(2, IntegerType)), _, false, _), _))) =>
-          (OP_GROUPBY_COL1_MIN_COL2_INT_STEP1,
-            OP_GROUPBY_COL1_MIN_COL2_INT_STEP2,
-            OP_SORT_COL2_IS_DUMMY_COL1,
-            OP_FILTER_NOT_DUMMY)
-
-        case (Seq(Col(2, _)), Seq(Col(2, _),
-          Alias(AggregateExpression(Sum(Col(3, IntegerType)), _, false, _), _))) =>
-          (OP_GROUPBY_COL2_SUM_COL3_INT_STEP1,
-            OP_GROUPBY_COL2_SUM_COL3_INT_STEP2,
-            OP_SORT_COL2_IS_DUMMY_COL1,
-            OP_FILTER_NOT_DUMMY)
-
-        case (Seq(Col(1, _)), Seq(Col(1, _),
-          Alias(AggregateExpression(Sum(Col(3, FloatType)), _, false, _), _),
-          Alias(AggregateExpression(Average(Col(2, IntegerType)), _, false, _), _))) =>
-          (OP_GROUPBY_COL1_SUM_COL3_FLOAT_AVG_COL2_INT_STEP1,
-            OP_GROUPBY_COL1_SUM_COL3_FLOAT_AVG_COL2_INT_STEP2,
-            OP_SORT_COL2_IS_DUMMY_COL1,
-            OP_FILTER_NOT_DUMMY)
-
-        case (Seq(Col(1, _), Col(2, _)), Seq(Col(1, _), Col(2, _),
-          Alias(AggregateExpression(Sum(Col(3, FloatType)), _, false, _), _))) =>
-          (OP_GROUPBY_COL1_COL2_SUM_COL3_FLOAT_STEP1,
-            OP_GROUPBY_COL1_COL2_SUM_COL3_FLOAT_STEP2,
-            OP_SORT_COL2_IS_DUMMY_COL1,
-            OP_FILTER_NOT_DUMMY)
-
-        case (Seq(), Seq(
-          Alias(AggregateExpression(Sum(Col(1, IntegerType)), _, false, _), _))) =>
-          (OP_SUM_COL1_INTEGER,
-            OP_SUM_COL1_INTEGER,
-            OP_SORT_COL2_IS_DUMMY_COL1,
-            OP_FILTER_NOT_DUMMY)
-
-        case (Seq(), Seq(
-          Alias(AggregateExpression(Sum(Col(1, FloatType)), _, false, _), _),
-          Alias(AggregateExpression(Sum(Col(2, FloatType)), _, false, _), _),
-          Alias(AggregateExpression(Sum(Col(3, FloatType)), _, false, _), _),
-          Alias(AggregateExpression(Sum(Col(4, FloatType)), _, false, _), _),
-          Alias(AggregateExpression(Sum(Col(5, FloatType)), _, false, _), _)
-        )) =>
-          (OP_SUM_LS,
-            OP_SUM_LS_2,
-            OP_SORT_COL2_IS_DUMMY_COL1,
-            OP_FILTER_NOT_DUMMY)
-
-      case _ =>
-        throw new Exception(
-          s"ObliviousAggregateExec: unknown grouping expressions $groupingExpressions, " +
-            s"aggregation expressions $aggExpressions.\n" +
-            s"Input: ${child.output}.\n" +
-            s"Types: ${child.output.map(_.dataType)}")
-      }
-
-    val childRDD = child.asInstanceOf[OpaqueOperatorExec].executeBlocked()
-    Utils.ensureCached(childRDD)
-
-    if (childRDD.map(_.numRows).sum == 0) {
-       return childRDD
-    }
-
-    if (aggStep1Opcode == OP_SUM_COL1_INTEGER || aggStep1Opcode == OP_SUM_LS) {
-      RA.initRA(childRDD)
-      // Do local global aggregates
-      val aggregates = childRDD.map { block =>
-        val (enclave, eid) = Utils.initEnclave()
-        val numOutputRows = new MutableInteger
-        val resultBytes = enclave.GlobalAggregate(
-          eid, 0, 0, aggStep1Opcode.value, block.bytes, block.numRows, numOutputRows)
-        resultBytes
-      }
-
-      Utils.ensureCached(aggregates)
-      val (enclave, eid) = Utils.initEnclave()
-      val aggregatesCollected = aggregates.collect
-      // Collect and run GlobalAggregate again
-      val finalOutputRows = new MutableInteger
-      val result = enclave.GlobalAggregate(eid, 0, 0, aggStep2Opcode.value,
-        Utils.concatByteArrays(aggregatesCollected), aggregatesCollected.length, finalOutputRows)
-      assert(finalOutputRows.value == 1)
-
-      var a = new Array[Block](1)
-      a(0) = Block(result, finalOutputRows.value)
-
-      return sparkContext.parallelize(a, 1)
-    }
-
-    println("[lc-agg debug] started lc-agg")
     time("aggregate - force child") { childRDD.count }
     // Process boundaries
     RA.initRA(childRDD)
@@ -710,97 +511,140 @@ case class ObliviousAggregateExecLowCardinality(
     }
     val (enclave, eid) = Utils.initEnclave()
     val numDistinctGroupsMutable = new MutableInteger
-    println("[lc-agg debug] processing boundaries now")
     val processedBoundariesConcat = time("aggregate - ProcessBoundary") {
       enclave.ProcessBoundary(
         eid, aggStep1Opcode.value,
         Utils.concatByteArrays(boundariesCollected), boundariesCollected.length, numDistinctGroupsMutable)
     }
-
     val numDistinctGroups = numDistinctGroupsMutable.value
+    println(s"[aggregate-debug] numDistinctGroups: ${numDistinctGroups}")
 
-    println(s"[lc-agg debug] numDistinctGroups: $numDistinctGroups")
-    // Send processed boundaries to partitions and generate a mix of partial and final aggregates
-    val processedBoundaries = Utils.splitBytes(processedBoundariesConcat, boundariesCollected.length)
-    val processedBoundariesRDD = sparkContext.parallelize(processedBoundaries, childRDD.partitions.length)
-    // Karthik: No longer zipping the output of step two
-    val partialAggregates = childRDD.zipPartitions(processedBoundariesRDD) {
-      (blockIter, boundaryIter) =>
-        val blockArray = blockIter.toArray
-        assert(blockArray.length == 1)
-        val block = blockArray.head
-        val boundaryArray = boundaryIter.toArray
-        assert(boundaryArray.length == 1)
-        val boundaryRecord = boundaryArray.head
-        val (enclave, eid) = Utils.initEnclave()
-        assert(block.numRows > 0)
-        println("[lc-agg debug] about to call step2")
-        val partialAgg = enclave.AggregateStep2LC(
-          eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows, boundaryRecord, numDistinctGroups)
-        println("[lc-agg debug] about to assert the result of step2")
-        assert(partialAgg.nonEmpty,
-          s"enclave.AggregateStep2($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}, ${boundaryRecord.length}, ${numDistinctGroups}) returned empty result")
-        // TODO karthik: is this correct?
-        println("[lc-agg debug] step2 returned successfully")
-        Iterator(Block(partialAgg, numDistinctGroups))
+
+
+
+    /*
+     * ------- Karthik -------
+     * Here we branch off into either normal or low cardinality aggregatoin
+     * There's a handful of issues with this approach
+     *   - no control of this at the query planning/optimizing stage
+     *     - potentially confusing behaviour
+     *   - output is different
+     *     - lc outputs final aggregation results
+     *     - normal aggregation required a sort and filter
+     *       - we might want to seperate them from this function so they can be optimized in query planning
+     *       - these steps can't be seperated from AggregateExec now...
+     */
+
+    // logic for picking cardinality mode here
+    // TODO replace this with something less crude
+    val low_cardinality_mode = numDistinctGroups < 10000;
+
+    if (low_cardinality_mode) {
+
+      val processedBoundaries = Utils.splitBytes(processedBoundariesConcat, boundariesCollected.length)
+      val processedBoundariesRDD = sparkContext.parallelize(processedBoundaries, childRDD.partitions.length)
+
+      val partialAggregates = childRDD.zipPartitions(processedBoundariesRDD) {
+        (blockIter, boundaryIter) =>
+          val blockArray = blockIter.toArray
+          assert(blockArray.length == 1)
+          val block = blockArray.head
+          val boundaryArray = boundaryIter.toArray
+          assert(boundaryArray.length == 1)
+          val boundaryRecord = boundaryArray.head
+          val (enclave, eid) = Utils.initEnclave()
+          assert(block.numRows > 0)
+          println("[lc-agg debug] about to call step2")
+          val partialAgg = enclave.AggregateStep2LC(
+            eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows, boundaryRecord, numDistinctGroups)
+          println("[lc-agg debug] about to assert the result of step2")
+          assert(partialAgg.nonEmpty,
+            s"enclave.AggregateStep2($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}, ${boundaryRecord.length}, ${numDistinctGroups}) returned empty result")
+          println("[lc-agg debug] step2 returned successfully")
+          Iterator(Block(partialAgg, numDistinctGroups))
+      }
+      Utils.ensureCached(partialAggregates)
+      time("aggregate - step 2") { partialAggregates.count }
+
+      // TODO Karthik: should I reduce by key instead?
+      val shuffledPartialAggregates = partialAggregates.flatMap {block =>
+        Utils.splitBytes(block.bytes, numDistinctGroups).zipWithIndex.map{case (block_bytes, i) => (i, block_bytes)}
+      }.groupByKey(numDistinctGroups).map {
+        case (i, blocks_bytes) =>
+          val blocks_bytes_collected = blocks_bytes.toArray
+          Block(Utils.concatByteArrays(blocks_bytes_collected), blocks_bytes_collected.length)
+      }
+
+      val finalAggregates = time("aggregate - aggregate partial aggregates") {
+        var result = shuffledPartialAggregates.map { block =>
+          val (enclave, eid) = Utils.initEnclave()
+          val finalAgg = enclave.AggregateFinalLC(eid, 0, 0, aggStep1Opcode.value, block.bytes, block.numRows)
+          assert(finalAgg.nonEmpty,
+            s"enclave.AggregateFinalLC($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}) returned empty result")
+          finalAgg
+        }.collect
+        result
+      }
+
+      var a = new Array[Block](1)
+      println("concatenating final output")
+      a(0) = Block(Utils.concatByteArrays(finalAggregates), numDistinctGroups)
+      println(s"concatenated final output size is ${a(0).bytes.length} numRows is ${a(0).numRows}")
+      return sparkContext.parallelize(a, 1)
+
+
+    } else {
+
+      // Send processed boundaries to partitions and generate a mix of partial and final aggregates
+      val processedBoundaries = Utils.splitBytes(processedBoundariesConcat, boundariesCollected.length)
+      val processedBoundariesRDD = sparkContext.parallelize(processedBoundaries, childRDD.partitions.length)
+      val partialAggregates = childRDD.zipPartitions(processedBoundariesRDD) {
+        (blockIter, boundaryIter) =>
+          val blockArray = blockIter.toArray
+          assert(blockArray.length == 1)
+          val block = blockArray.head
+          val boundaryArray = boundaryIter.toArray
+          assert(boundaryArray.length == 1)
+          val boundaryRecord = boundaryArray.head
+          val (enclave, eid) = Utils.initEnclave()
+          assert(block.numRows > 0)
+          val partialAgg = enclave.AggregateStep2(
+            eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows, boundaryRecord)
+          assert(partialAgg.nonEmpty,
+            s"enclave.AggregateStep2($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}, ${boundaryRecord.length}) returned empty result")
+          Iterator(Block(partialAgg, block.numRows))
+      }
+
+      Utils.ensureCached(partialAggregates)
+      time("aggregate - step 2") { partialAggregates.count }
+
+      // Sort the partial and final aggregates using a comparator that causes final aggregates to come first
+      val sortedAggregates = time("aggregate - sort dummies") {
+        val result = ObliviousSortExec.sortBlocks(partialAggregates, aggDummySortOpcode)
+        Utils.ensureCached(result)
+        result.count
+        result
+      }
+
+      // Filter out the non-final aggregates
+      val finalAggregates = time("aggregate - filter out dummies") {
+        val result = sortedAggregates.map { block =>
+          val (enclave, eid) = Utils.initEnclave()
+          val numOutputRows = new MutableInteger
+          val filtered = enclave.Filter(
+            eid, 0, 0, aggDummyFilterOpcode.value, block.bytes, block.numRows, numOutputRows)
+          Block(filtered, numOutputRows.value)
+        }
+        Utils.ensureCached(result)
+        result.count
+        result
+      }
+      return finalAggregates
     }
-    Utils.ensureCached(partialAggregates)
-    time("aggregate - step 2") { partialAggregates.count }
 
-    // TODO Karthik: should I reduce by key instead?
-    val shuffledPartialAggregates = partialAggregates.flatMap {block =>
-      Utils.splitBytes(block.bytes, numDistinctGroups).zipWithIndex.map{case (block_bytes, i) => (i, block_bytes)}
-    }.groupByKey(numDistinctGroups).map {
-      case (i, blocks_bytes) =>
-        val blocks_bytes_collected = blocks_bytes.toArray
-        Block(Utils.concatByteArrays(blocks_bytes_collected), blocks_bytes_collected.length)
-    }
 
-    val finalAggregates = time("aggregate - aggregate partial aggregates") {
-      var result = shuffledPartialAggregates.map { block =>
-        val (enclave, eid) = Utils.initEnclave()
-        val finalAgg = enclave.AggregateFinalLC(eid, 0, 0, aggStep1Opcode.value, block.bytes, block.numRows)
-        assert(finalAgg.nonEmpty,
-          s"enclave.AggregateFinalLC($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}) returned empty result")
-        finalAgg
-      }.collect
-      result
-    }
-    
-    var a = new Array[Block](1)
-    println("concatenating final output")
-    a(0) = Block(Utils.concatByteArrays(finalAggregates), numDistinctGroups)
-    println(s"concatenated final output size is ${a(0).bytes.length} numRows is ${a(0).numRows}")
-    return sparkContext.parallelize(a, 1)
-    // Sort the partial and final aggregates using a comparator that causes final aggregates to come first
-    // val sortedAggregates = time("aggregate - sort dummies") {
-    //   val result = ObliviousSortExec.sortBlocks(partialAggregates, aggDummySortOpcode)
-    //   Utils.ensureCached(result)
-    //   result.count
-    //   result
-    // }
-
-    // // Filter out the non-final aggregates
-    // val finalAggregates = time("aggregate - filter out dummies") {
-    //   val result = sortedAggregates.map { block =>
-    //     val (enclave, eid) = Utils.initEnclave()
-    //     val numOutputRows = new MutableInteger
-    //     val filtered = enclave.Filter(
-    //       eid, 0, 0, aggDummyFilterOpcode.value, block.bytes, block.numRows, numOutputRows)
-    //     Block(filtered, numOutputRows.value)
-    //   }
-    //   Utils.ensureCached(result)
-    //   result.count
-    //   result
-    // }
-    // finalAggregates
   }
 }
-
-
-
-
-
 
 case class EncryptedAggregateExec(
     groupingExpressions: Seq[Expression],
