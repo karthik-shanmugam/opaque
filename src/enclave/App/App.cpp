@@ -1085,7 +1085,7 @@ JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEncla
   JNIEnv *env, jobject obj, jlong eid,
   jint index, jint num_part,
   jint op_code, jbyteArray input_rows, jint num_rows,
-  jbyteArray boundary_info_row) {
+  jbyteArray boundary_info_row, jint num_distinct_groups) {
   (void)obj;
 
   jboolean if_copy;
@@ -1097,9 +1097,9 @@ JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEncla
 
   uint32_t actual_size = 0;
 
-  uint32_t output_rows_length = block_size_upper_bound(num_rows);
+  uint32_t output_rows_length = 2*block_size_upper_bound(num_distinct_groups);
   uint8_t *output_rows = (uint8_t *) malloc(output_rows_length);
-
+  printf("output_rows_length=%d\n", output_rows_length);
   sgx_check("Aggregate step 2 LC",
             ecall_aggregate_step2_lc(
               eid,

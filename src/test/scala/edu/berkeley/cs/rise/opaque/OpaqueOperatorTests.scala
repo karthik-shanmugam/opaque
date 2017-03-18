@@ -89,51 +89,51 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
     }
   }
 
-  // testAgainstSpark("least squares") { securityLevel =>
-  //   val answer = LeastSquaresBenchmark.query(spark, securityLevel, "tiny", numPartitions).collect
-  //   answer
-  // }
+  testAgainstSpark("least squares") { securityLevel =>
+    val answer = LeastSquaresBenchmark.query(spark, securityLevel, "tiny", numPartitions).collect
+    answer
+  }
 
   testOpaqueOnly("pagerank") { securityLevel =>
     PageRank.run(spark, securityLevel, "256", numPartitions)
   }
 
-  // testOpaqueOnly("join reordering") { securityLevel =>
-  //   JoinReordering.treatmentQuery(spark, "125", numPartitions)
-  // }
+  testOpaqueOnly("join reordering") { securityLevel =>
+    JoinReordering.treatmentQuery(spark, "125", numPartitions)
+  }
 
-  // testOpaqueOnly("join cost") { securityLevel =>
-  //   JoinCost.run(spark, Oblivious, "125", numPartitions)
-  // }
+  testOpaqueOnly("join cost") { securityLevel =>
+    JoinCost.run(spark, Oblivious, "125", numPartitions)
+  }
 
-  // testAgainstSpark("big data 1") { securityLevel =>
-  //   BigDataBenchmark.q1(spark, securityLevel, "tiny", numPartitions).collect
-  // }
+  testAgainstSpark("big data 1") { securityLevel =>
+    BigDataBenchmark.q1(spark, securityLevel, "tiny", numPartitions).collect
+  }
 
-  // testAgainstSpark("big data 2") { securityLevel =>
-  //   BigDataBenchmark.q2(spark, securityLevel, "tiny", numPartitions).collect
-  //     .map { case Row(a: String, b: Double) => (a, b.toFloat) }
-  //     .sortBy(_._1)
-  //     .map {
-  //       case (str: String, f: Float) => (str, "%.2f".format(f))
-  //     }
-  // }
+  testAgainstSpark("big data 2") { securityLevel =>
+    BigDataBenchmark.q2(spark, securityLevel, "tiny", numPartitions).collect
+      .map { case Row(a: String, b: Double) => (a, b.toFloat) }
+      .sortBy(_._1)
+      .map {
+        case (str: String, f: Float) => (str, "%.2f".format(f))
+      }
+  }
 
   // testAgainstSpark("big data 3") { securityLevel =>
   //   BigDataBenchmark.q3(spark, securityLevel, "tiny", numPartitions).collect
   // }
 
-  // testAgainstSpark("create DataFrame from sequence") { securityLevel =>
-  //   val data = for (i <- 0 until 5) yield ("foo", i)
-  //   makeDF(data, securityLevel, "word", "count").collect
-  // }
+  testAgainstSpark("create DataFrame from sequence") { securityLevel =>
+    val data = for (i <- 0 until 5) yield ("foo", i)
+    makeDF(data, securityLevel, "word", "count").collect
+  }
 
-  // testAgainstSpark("filter") { securityLevel =>
-  //   val data = for (i <- 0 until 5) yield ("foo", i)
-  //   val words = makeDF(data, securityLevel, "word", "count")
+  testAgainstSpark("filter") { securityLevel =>
+    val data = for (i <- 0 until 5) yield ("foo", i)
+    val words = makeDF(data, securityLevel, "word", "count")
 
-  //   words.select($"word", $"count" + 1).collect
-  // }
+    words.select($"word", $"count" + 1).collect
+  }
 
   def abc(i: Int): String = (i % 3) match {
     case 0 => "A"
@@ -169,17 +169,17 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
       .collect.sortBy { case Row(str: String, _, _) => str }
   }
 
-  // testAgainstSpark("sort") { securityLevel =>
-  //   val data = Random.shuffle((0 until 256).map(x => (x.toString, x)).toSeq)
-  //   val df = makeDF(data, securityLevel, "str", "x")
-  //   df.sort($"x").collect
-  // }
+  testAgainstSpark("sort") { securityLevel =>
+    val data = Random.shuffle((0 until 256).map(x => (x.toString, x)).toSeq)
+    val df = makeDF(data, securityLevel, "str", "x")
+    df.sort($"x").collect
+  }
 
-  // testAgainstSpark("sort by float") { securityLevel =>
-  //   val data = Random.shuffle((0 until 256).map(x => (x.toString, x.toFloat)).toSeq)
-  //   val df = makeDF(data, securityLevel, "str", "x")
-  //   df.sort($"x").collect
-  // }
+  testAgainstSpark("sort by float") { securityLevel =>
+    val data = Random.shuffle((0 until 256).map(x => (x.toString, x.toFloat)).toSeq)
+    val df = makeDF(data, securityLevel, "str", "x")
+    df.sort($"x").collect
+  }
 
   // testAgainstSpark("join") { securityLevel =>
   //   val p_data = for (i <- 1 to 16) yield (i, i.toString, i * 10)
@@ -197,11 +197,11 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
   //   p.join(f, $"pk" === $"fk").collect.toSet.toSeq
   // }
 
-  // testAgainstSpark("select") { securityLevel =>
-  //   val data = for (i <- 0 until 256) yield ("%03d".format(i) * 3, i.toFloat)
-  //   val df = makeDF(data, securityLevel, "str", "x")
-  //   df.select($"str").collect
-  // }
+  testAgainstSpark("select") { securityLevel =>
+    val data = for (i <- 0 until 256) yield ("%03d".format(i) * 3, i.toFloat)
+    val df = makeDF(data, securityLevel, "str", "x")
+    df.select($"str").collect
+  }
 
   // testOpaqueOnly("cache") { securityLevel =>
   //   def numCached(ds: Dataset[_]): Int =
@@ -220,11 +220,11 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
   //   assert(agg.collect.toSet === expected.map(Row.fromTuple).toSet)
   // }
 
-  // testOpaqueOnly("global aggregate") { securityLevel =>
-  //   val data = for (i <- 0 until 256) yield (i, abc(i), 1)
-  //   val words = makeDF(data, securityLevel, "id", "word", "count")
-  //   val result = words.agg(sum("count").as("totalCount"))
-  // }
+  testOpaqueOnly("global aggregate") { securityLevel =>
+    val data = for (i <- 0 until 256) yield (i, abc(i), 1)
+    val words = makeDF(data, securityLevel, "id", "word", "count")
+    val result = words.agg(sum("count").as("totalCount"))
+  }
 
   def makeDF[A <: Product : scala.reflect.ClassTag : scala.reflect.runtime.universe.TypeTag](
     data: Seq[A], securityLevel: SecurityLevel, columnNames: String*): DataFrame =

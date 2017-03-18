@@ -39,7 +39,7 @@ extern "C" {
     JNIEnv *, jobject, jlong, jint, jint, jint, jbyteArray, jint, jbyteArray);
 
   JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_AggregateStep2LC(
-    JNIEnv *, jobject, jlong, jint, jint, jint, jbyteArray, jint, jbyteArray);
+    JNIEnv *, jobject, jlong, jint, jint, jint, jbyteArray, jint, jbyteArray, jint);
 
   JNIEXPORT jbyteArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_AggregateFinalLC(
     JNIEnv *, jobject, jlong, jint, jint, jint, jbyteArray, jint);

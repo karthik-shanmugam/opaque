@@ -192,13 +192,16 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
   boundary_info_reader.read(&next_partition_first_row);
 
   int num_distinct = boundary_info.get_num_distinct();
-  int aggregates_per_pass = 2*MAX_SORT_BUFFER/AGG_UPPER_BOUND; // TODO Karthik: how many partial aggregates we can fit into memory
+  int aggregates_per_pass = (2*MAX_SORT_BUFFER - AGG_UPPER_BOUND*2 - ROW_UPPER_BOUND*3)/AGG_UPPER_BOUND; // TODO Karthik: how many partial aggregates we can fit into memory
   int num_passes = num_distinct % aggregates_per_pass ? num_distinct / aggregates_per_pass + 1 : num_distinct / aggregates_per_pass + 1;
+
+  if (num_passes == 1) {
+    aggregates_per_pass = num_distinct;
+  }
   printf("[aggregate_step2_low_cardinality] performing %d passes with a max of %d aggregates per pass\n", num_passes, aggregates_per_pass);
 
   int writes = 0;
   for (int i = 0; i < num_passes; i++) {
-
     AggregatorType* agg_buf = new AggregatorType[aggregates_per_pass];
     RowReader r(input_rows, input_rows + input_rows_length, verify_set);
     AggregatorType a;
@@ -224,10 +227,8 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
       if (j < num_rows - 1) r.read(&next); else next.set(&next_partition_first_row);
 
       a.aggregate(&cur);
-
       // The current aggregate is final if it is the last aggregate for its run
       bool a_is_final = !a.grouping_attrs_equal(&next);
-
       // only write one partial aggregate per distinct group
       if (a_is_final || j == num_rows - 1) {
 
@@ -248,6 +249,7 @@ void aggregate_step2_low_cardinality(Verify *verify_set,
     }
     delete[] agg_buf;
   }
+  printf("[aggregate_step2_low_cardinality] performed %d passes with a max of %d aggregates per pass\n", num_passes, aggregates_per_pass);
   w.close();
   *actual_size = w.bytes_written();
 

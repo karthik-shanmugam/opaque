@@ -736,10 +736,10 @@ case class ObliviousAggregateExecLowCardinality(
         assert(block.numRows > 0)
         println("[lc-agg debug] about to call step2")
         val partialAgg = enclave.AggregateStep2LC(
-          eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows, boundaryRecord)
+          eid, 0, 0, aggStep2Opcode.value, block.bytes, block.numRows, boundaryRecord, numDistinctGroups)
         println("[lc-agg debug] about to assert the result of step2")
         assert(partialAgg.nonEmpty,
-          s"enclave.AggregateStep2($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}, ${boundaryRecord.length}) returned empty result")
+          s"enclave.AggregateStep2($eid, 0, 0, $aggStep2Opcode, ${block.bytes.length}, ${block.numRows}, ${boundaryRecord.length}, ${numDistinctGroups}) returned empty result")
         // TODO karthik: is this correct?
         println("[lc-agg debug] step2 returned successfully")
         Iterator(Block(partialAgg, numDistinctGroups))

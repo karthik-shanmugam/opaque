@@ -121,7 +121,8 @@ class SGXEnclave extends java.io.Serializable {
     op_code: Int,
     input_rows: Array[Byte],
     num_rows: Int,
-    boundary_info_row: Array[Byte]): Array[Byte]
+    boundary_info_row: Array[Byte],
+    num_distinct_groups: Int): Array[Byte]
 
   @native def AggregateFinalLC(
     eid: Long,
