@@ -67,7 +67,7 @@ object OpaqueOperators extends Strategy {
       }
 
     case a @ ObliviousAggregate(groupingExpressions, aggExpressions, child) =>
-      ObliviousAggregateExec(groupingExpressions, aggExpressions, planLater(child)) :: Nil
+      ObliviousLowCardinalityAggregateExec(groupingExpressions, aggExpressions, planLater(child)) :: Nil
     case a @ EncryptedAggregate(groupingExpressions, aggExpressions, child) =>
       EncryptedAggregateExec(groupingExpressions, aggExpressions, planLater(child)) :: Nil
 
