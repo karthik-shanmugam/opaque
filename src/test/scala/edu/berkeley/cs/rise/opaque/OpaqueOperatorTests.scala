@@ -122,6 +122,31 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
   // testAgainstSpark("big data 3") { securityLevel =>
   //   BigDataBenchmark.q3(spark, securityLevel, "tiny", numPartitions).collect
   // }
+  val lowCardinality = false
+  // testAgainstSpark("aggregate 100 groups 100000 rows") { securityLevel =>
+  //   AggregateBenchmark.aggregate(spark, securityLevel, 100000, 100, numPartitions, lowCardinality).collect.sortBy { case Row(word: String, _) => word }
+  // }
+  // testAgainstSpark("aggregate 1000 groups 100000 rows") { securityLevel =>
+  //   AggregateBenchmark.aggregate(spark, securityLevel, 100000, 1000, numPartitions, lowCardinality).collect.sortBy { case Row(word: String, _) => word }
+  // }
+  // testAgainstSpark("aggregate 10000 groups 100000 rows") { securityLevel =>
+  //   AggregateBenchmark.aggregate(spark, securityLevel, 100000, 10000, numPartitions, lowCardinality).collect.sortBy { case Row(word: String, _) => word }
+  // }
+
+  def runAggBenchmark(numDistinctGroups: Int, numRows: Int, iteration: Int): Unit = {
+    testAgainstSpark(s"aggregate $numDistinctGroups groups $numRows rows, iteration $iteration") { securityLevel =>
+      AggregateBenchmark.aggregate(spark, securityLevel, numRows, numDistinctGroups, numPartitions, lowCardinality).collect.sortBy { case Row(word: String, _) => word }
+    }    
+  }
+  // val ignoredVar = 0
+  // for ( iteration <- 0 until 20) {
+    for (numRows <- List(100000)) {
+      for (numDistinctGroups <- 100 to 1000 by 100) {
+        runAggBenchmark(numDistinctGroups, numRows, iteration)
+      }
+    }
+  // }
+  // }
 
   // testAgainstSpark("create DataFrame from sequence") { securityLevel =>
   //   val data = for (i <- 0 until 5) yield ("foo", i)
@@ -173,23 +198,23 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
   //     .collect.sortBy { case Row(str: String, _, _) => str }
   // }
 
-  testAgainstSpark("aggregate benchmark 1000 100000") { securityLevel =>
-    val num_distinct_groups = 1000
-    val data = for (i <- 0 until 100000) yield (i, group_for_int(i, num_distinct_groups), 1)
-    val words = makeDF(data, securityLevel, "id", "word", "count")
+  // testAgainstSpark("aggregate benchmark 1000 100000") { securityLevel =>
+  //   val num_distinct_groups = 1000
+  //   val data = for (i <- 0 until 100000) yield (i, group_for_int(i, num_distinct_groups), 1)
+  //   val words = makeDF(data, securityLevel, "id", "word", "count")
 
-    words.groupBy("word").agg(sum("count").as("totalCount"))
-      .collect.sortBy { case Row(word: String, _) => word }
-  }
+  //   words.groupBy("word").agg(sum("count").as("totalCount"))
+  //     .collect.sortBy { case Row(word: String, _) => word }
+  // }
 
-  testAgainstSpark("aggregate benchmark 1000 1000000") { securityLevel =>
-    val num_distinct_groups = 1000
-    val data = for (i <- 0 until 1000000) yield (i, group_for_int(i, num_distinct_groups), 1)
-    val words = makeDF(data, securityLevel, "id", "word", "count")
+  // testAgainstSpark("aggregate benchmark 1000 1000000") { securityLevel =>
+  //   val num_distinct_groups = 1000
+  //   val data = for (i <- 0 until 1000000) yield (i, group_for_int(i, num_distinct_groups), 1)
+  //   val words = makeDF(data, securityLevel, "id", "word", "count")
 
-    words.groupBy("word").agg(sum("count").as("totalCount"))
-      .collect.sortBy { case Row(word: String, _) => word }
-  }
+  //   words.groupBy("word").agg(sum("count").as("totalCount"))
+  //     .collect.sortBy { case Row(word: String, _) => word }
+  // }
 
   // testAgainstSpark("sort") { securityLevel =>
   //   val data = Random.shuffle((0 until 256).map(x => (x.toString, x)).toSeq)
@@ -266,20 +291,20 @@ class OpaqueSinglePartitionSuite extends OpaqueOperatorTests {
   override def numPartitions = 1
 }
 
-class OpaqueMultiplePartitionSuite extends OpaqueOperatorTests {
-  override val spark = SparkSession.builder()
-    .master("local[3]")
-    .appName("QEDSuite")
-    .getOrCreate()
+// class OpaqueMultiplePartitionSuite extends OpaqueOperatorTests {
+//   override val spark = SparkSession.builder()
+//     .master("local[3]")
+//     .appName("QEDSuite")
+//     .getOrCreate()
 
-  override def numPartitions = 3
-}
+//   override def numPartitions = 3
+// }
 
-class OpaqueBiggerMultiplePartitionSuite extends OpaqueOperatorTests {
-  override val spark = SparkSession.builder()
-    .master("local[5]")
-    .appName("QEDSuite")
-    .getOrCreate()
+// class OpaqueBiggerMultiplePartitionSuite extends OpaqueOperatorTests {
+//   override val spark = SparkSession.builder()
+//     .master("local[5]")
+//     .appName("QEDSuite")
+//     .getOrCreate()
 
-  override def numPartitions = 5
-}
+//   override def numPartitions = 5
+// }

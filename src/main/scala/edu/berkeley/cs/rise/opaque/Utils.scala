@@ -19,6 +19,7 @@ package edu.berkeley.cs.rise.opaque
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.io.FileWriter
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
@@ -76,6 +77,21 @@ object Utils {
       "time" -> timeMs,
       "sgx" -> (if (System.getenv("SGX_MODE") == "HW") "hw" else "sim"))
     println(jsonSerialize(attrs))
+    result
+  }
+
+  def timeBenchmarkAppendFile[A](filename: String, benchmarkAttrs: (String, Any)*)(f: => A): A = {
+    val start = System.nanoTime
+    val result = f
+    val timeMs = (System.nanoTime - start) / 1000000.0
+    val attrs = benchmarkAttrs.toMap + (
+      "time" -> timeMs,
+      "sgx" -> (if (System.getenv("SGX_MODE") == "HW") "hw" else "sim"))
+    val serializedAttrs = jsonSerialize(attrs)
+    val fw = new FileWriter(filename, true) 
+    fw.write(serializedAttrs + ",\n") 
+    fw.close()
+    println(serializedAttrs)
     result
   }
 
