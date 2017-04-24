@@ -732,8 +732,6 @@ case class EncryptedSortMergeJoinExec(
     left.output ++ right.output
 
   override def executeBlocked() = {
-    val (joinOpcode, dummySortOpcode, dummyFilterOpcode) =
-      OpaqueJoinUtils.getOpcodes(left.output, right.output, leftKeys, rightKeys, condition)
 
     val leftRDD = left.asInstanceOf[OpaqueOperatorExec].executeBlocked()
     val rightRDD = right.asInstanceOf[OpaqueOperatorExec].executeBlocked()
@@ -782,5 +780,71 @@ case class EncryptedSortMergeJoinExec(
     time("join - sort merge join") { joined.count }
 
     joined
+  }
+}
+
+
+
+case class EncryptedUnionAllExec(
+    left: SparkPlan,
+    right: SparkPlan)
+  extends BinaryExecNode with OpaqueOperatorExec {
+  import Utils.time
+
+  override def output: Seq[Attribute] =
+    left.output ++ right.output
+
+  override def executeBlocked() = {
+    val (joinOpcode, dummySortOpcode, dummyFilterOpcode) =
+      OpaqueJoinUtils.getOpcodes(left.output, right.output, leftKeys, rightKeys, condition)
+
+    val leftRDD = left.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+    val rightRDD = right.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+    Utils.ensureCached(leftRDD)
+    time("Force left child of EncryptedSortMergeJoinExec") { leftRDD.count }
+    Utils.ensureCached(rightRDD)
+    time("Force right child of EncryptedSortMergeJoinExec") { rightRDD.count }
+
+    RA.initRA(leftRDD)
+
+    val unioned = leftRDD.zipPartitions(rightRDD) { (leftBlockIter, rightBlockIter) =>
+      leftBlockIter ++ rightBlockIter
+      // val (enclave, eid) = Utils.initEnclave()
+
+      // val leftBlockArray = leftBlockIter.toArray
+      // assert(leftBlockArray.length == 1)
+      // val leftBlock = leftBlockArray.head
+
+      // val rightBlockArray = rightBlockIter.toArray
+      // assert(rightBlockArray.length == 1)
+      // val rightBlock = rightBlockArray.head
+
+      // val processed = enclave.JoinSortPreprocess(
+      //   eid, 0, 0, joinOpcode.value, leftBlock.bytes, leftBlock.numRows,
+      //   rightBlock.bytes, rightBlock.numRows)
+
+      // Iterator(Block(processed, leftBlock.numRows + rightBlock.numRows))
+    }
+    Utils.ensureCached(unioned)
+    time("union") { unioned.count }
+    unioned
+    // val sorted = time("join - sort") {
+    //   val result = EncryptedSortExec.sort(processed, ???)
+    //   Utils.ensureCached(result)
+    //   result.count
+    //   result
+    // }
+
+    // val joined = sorted.map { block =>
+    //   val (enclave, eid) = Utils.initEnclave()
+    //   val numOutputRows = new MutableInteger
+    //   val joined = enclave.NonObliviousSortMergeJoin(
+    //     eid, 0, 0, joinOpcode.value, block.bytes, block.numRows, numOutputRows)
+    //   Block(joined, numOutputRows.value)
+    // }
+    // Utils.ensureCached(joined)
+    // time("join - sort merge join") { joined.count }
+
+    // joined
   }
 }
