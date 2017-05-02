@@ -56,36 +56,49 @@ class QEDSuite extends FunSuite with BeforeAndAfterAll {
     spark.stop()
   }
 
-  test("flatbuffers filter") {
-    val df = spark.createDataFrame(
-      (1 to 20).map(x => (true, "hello", 1.0, 2.0f, x)))
-      .toDF("a", "b", "c", "d", "x").encrypted
-      .filter($"x" > lit(10))
-    df.explain(true)
-    df.show
-  }
+  // test("flatbuffers filter") {
+  //   val df = spark.createDataFrame(
+  //     (1 to 20).map(x => (true, "hello", 1.0, 2.0f, x)))
+  //     .toDF("a", "b", "c", "d", "x").encrypted
+  //     .filter($"x" > lit(10))
+  //   df.explain(true)
+  //   df.show
+  // }
 
-  test("flatbuffers project") {
-    val df = spark.createDataFrame(
-      (1 to 20).map(x => (true, "hello world!", 1.0, 2.0f, x)))
-      .toDF("a", "b", "c", "d", "x").encrypted
-      .select(
-        $"x" + $"x" * $"x" - $"x",
-        substring($"b", 5, 20),
-        $"x" > $"x",
-        $"x" >= $"x",
-        $"x" <= $"x")
-    df.explain(true)
-    df.show
-  }
+  // test("flatbuffers project") {
+  //   val df = spark.createDataFrame(
+  //     (1 to 20).map(x => (true, "hello world!", 1.0, 2.0f, x)))
+  //     .toDF("a", "b", "c", "d", "x").encrypted
+  //     .select(
+  //       $"x" + $"x" * $"x" - $"x",
+  //       substring($"b", 5, 20),
+  //       $"x" > $"x",
+  //       $"x" >= $"x",
+  //       $"x" <= $"x")
+  //   df.explain(true)
+  //   df.show
+  // }
 
-  test("flatbuffers sort") {
-    val df = spark.createDataFrame(
+  // test("flatbuffers sort") {
+  //   val df = spark.createDataFrame(
+  //     (1 to 20).map(x => (x, x.toString)).reverse)
+  //     .toDF("a", "b").encrypted
+  //     .sort($"a")
+  //   df.explain(true)
+  //   df.show()
+  // }
+
+  test("flatbuffers union") {
+    val left_df = spark.createDataFrame(
       (1 to 20).map(x => (x, x.toString)).reverse)
       .toDF("a", "b").encrypted
-      .sort($"a")
-    df.explain(true)
-    df.show(50)
+    val right_df = spark.createDataFrame(
+      (20 to 40).map(x => (x, x.toString)).reverse)
+      .toDF("a", "b").encrypted
+
+    val result = left_df.unionAll(right_df)
+    // result.explain(true)
+    result.show()
   }
 
   // test("encAggregate - final run split across multiple partitions") {

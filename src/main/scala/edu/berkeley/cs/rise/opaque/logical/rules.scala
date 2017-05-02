@@ -96,6 +96,12 @@ object ConvertToOpaqueOperators extends Rule[LogicalPlan] {
     case p @ Join(left, right, Inner, Some(joinExpr)) if isEncrypted(p) =>
       EncryptedJoin(left.asInstanceOf[OpaqueOperator], right.asInstanceOf[OpaqueOperator], joinExpr)
 
+    case p @ Union(children) if isEncrypted(p) =>
+      EncryptedUnionAll(children(0).asInstanceOf[OpaqueOperator], children(1).asInstanceOf[OpaqueOperator])
+
+    case p @ LocalLimit(limitExpr, child) =>
+      child
+
     case p @ Aggregate(groupingExprs, aggExprs, child) if isOblivious(p) =>
       UndoCollapseProject.separateProjectAndAgg(p) match {
         case Some((projectExprs, aggExprs)) =>

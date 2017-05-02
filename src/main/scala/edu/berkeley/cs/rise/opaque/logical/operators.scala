@@ -180,3 +180,11 @@ case class EncryptedJoin(
 
   override def output: Seq[Attribute] = left.output ++ right.output
 }
+
+case class EncryptedUnionAll(
+    left: OpaqueOperator,
+    right: OpaqueOperator)
+  extends BinaryNode with OpaqueOperator {
+
+  override def output: Seq[Attribute] = left.output
+}

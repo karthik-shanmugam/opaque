@@ -44,6 +44,7 @@ object OpaqueOperators extends Strategy {
 
     case ObliviousSort(order, child) =>
       ObliviousSortExec(order, planLater(child)) :: Nil
+      
     case EncryptedSort(order, child) =>
       EncryptedSortExec(order, planLater(child)) :: Nil
 
@@ -79,6 +80,9 @@ object OpaqueOperators extends Strategy {
 
     case EncryptedBlockRDD(output, rdd, isOblivious) =>
       EncryptedBlockRDDScanExec(output, rdd, isOblivious) :: Nil
+
+    case EncryptedUnionAll(left, right) =>
+      EncryptedUnionAllExec(planLater(left), planLater(right)) :: Nil
 
     case _ => Nil
   }
