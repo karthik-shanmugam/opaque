@@ -216,4 +216,4 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
 //     .getOrCreate()
 
 //   override def numPartitions = 3
-// }
+}

@@ -733,7 +733,7 @@ case class EncryptedSortMergeJoinExec(
 
   override def executeBlocked() = {
     val (joinOpcode, dummySortOpcode, dummyFilterOpcode) =
-          OpaqueJoinUtils.getOpcodes(left.output, right.output, leftKeys, rightKeys, condition)
+      OpaqueJoinUtils.getOpcodes(left.output, right.output, leftKeys, rightKeys, condition)
 
     val leftRDD = left.asInstanceOf[OpaqueOperatorExec].executeBlocked()
     val rightRDD = right.asInstanceOf[OpaqueOperatorExec].executeBlocked()
@@ -795,6 +795,9 @@ case class EncryptedUnionAllExec(
     left.output
 
   override def executeBlocked() = {
+    // val (joinOpcode, dummySortOpcode, dummyFilterOpcode) =
+    //   OpaqueJoinUtils.getOpcodes(left.output, right.output, leftKeys, rightKeys, condition)
+
     val leftRDD = left.asInstanceOf[OpaqueOperatorExec].executeBlocked()
     val rightRDD = right.asInstanceOf[OpaqueOperatorExec].executeBlocked()
     Utils.ensureCached(leftRDD)
@@ -803,7 +806,32 @@ case class EncryptedUnionAllExec(
     RA.initRA(leftRDD)
 
     val unioned = leftRDD.zipPartitions(rightRDD) { (leftBlockIter, rightBlockIter) =>
-      leftBlockIter ++ rightBlockIter
+      val leftBlockArray = leftBlockIter.toArray
+      assert(leftBlockArray.length == 1)
+      val leftBlock = leftBlockArray.head
+
+      val rightBlockArray = rightBlockIter.toArray
+      assert(rightBlockArray.length == 1)
+      val rightBlock = rightBlockArray.head
+
+      Iterator(Utils.concatEncryptedBlocks(leftBlock, rightBlock))
+
+      // leftBlockIter ++ rightBlockIter
+      // val (enclave, eid) = Utils.initEnclave()
+
+      // val leftBlockArray = leftBlockIter.toArray
+      // assert(leftBlockArray.length == 1)
+      // val leftBlock = leftBlockArray.head
+
+      // val rightBlockArray = rightBlockIter.toArray
+      // assert(rightBlockArray.length == 1)
+      // val rightBlock = rightBlockArray.head
+
+      // val processed = enclave.JoinSortPreprocess(
+      //   eid, 0, 0, joinOpcode.value, leftBlock.bytes, leftBlock.numRows,
+      //   rightBlock.bytes, rightBlock.numRows)
+
+      // Iterator(Block(processed, leftBlock.numRows + rightBlock.numRows))
     }
     Utils.ensureCached(unioned)
     time("union") { unioned.count }

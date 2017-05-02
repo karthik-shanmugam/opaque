@@ -692,4 +692,38 @@ object Utils {
               })).toArray)))
     builder.sizedByteArray()
   }
+
+  def concatEncryptedBlocks(left: Block, right: Block): Block = {
+
+    val leftBuf = ByteBuffer.wrap(left.bytes)
+    val leftEncryptedBlocks = tuix.EncryptedBlocks.getRootAsEncryptedBlocks(leftBuf)
+
+    val rightBuf = ByteBuffer.wrap(right.bytes)
+    val rightEncryptedBlocks = tuix.EncryptedBlocks.getRootAsEncryptedBlocks(rightBuf)
+
+    val builder = new FlatBufferBuilder
+    val leftBlocks = (0 to leftEncryptedBlocks.blocksLength()).map(i=>leftEncryptedBlocks.blocks(i))
+    val rightBlocks = (0 to rightEncryptedBlocks.blocksLength()).map(i=>rightEncryptedBlocks.blocks(i))
+    val allBlocks = leftBlocks ++ rightBlocks
+    tuix.EncryptedBlocks.createEncryptedBlocks(
+      builder, tuix.EncryptedBlocks.createBlocksVector(builder, allBlocks.map{
+        encryptedBlock => {
+            val encRows = new Array[Byte](encryptedBlock.encRowsLength)
+            encryptedBlock.encRowsAsByteBuffer().get(encRows)
+            tuix.EncryptedBlock.createEncryptedBlock(builder, encryptedBlock.numRows, tuix.EncryptedBlock.createEncRowsVector(builder, encRows))
+          }
+        }.toArray))
+    Block(builder.sizedByteArray(), left.numRows + right.numRows)
+    // left
+  }
+
+  // def combineBlocks(left: Block, right: Block): Block = {
+  //   left
+  // }
+  // def decryptBlockFlatbuffers(block: Block): Seq[InternalRow] = {
+  //   // 4. Extract the serialized tuix.EncryptedBlocks from the Scala Block object
+  //   val buf = ByteBuffer.wrap(block.bytes)
+
+  //   // 3. Deserialize the tuix.EncryptedBlocks to get the encrypted rows
+  //   val encryptedBlocks = tuix.EncryptedBlocks.getRootAsEncryptedBlocks(buf)
 }
