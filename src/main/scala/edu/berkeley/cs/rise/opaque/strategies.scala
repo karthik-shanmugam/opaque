@@ -82,7 +82,10 @@ object OpaqueOperators extends Strategy {
       EncryptedBlockRDDScanExec(output, rdd, isOblivious) :: Nil
 
     case EncryptedUnionAll(left, right) =>
-      EncryptedUnionAllExec(planLater(left), planLater(right)) :: Nil
+      {
+        println("initializing an exec thingy")
+        EncryptedUnionAllExec(planLater(left), planLater(right)) :: Nil
+      }
 
     case _ => Nil
   }

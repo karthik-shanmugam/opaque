@@ -794,10 +794,10 @@ case class EncryptedUnionAllExec(
   override def output: Seq[Attribute] =
     left.output
 
-  override def executeBlocked() = {
+  override def executeBlocked(): RDD[Block] = {
     // val (joinOpcode, dummySortOpcode, dummyFilterOpcode) =
     //   OpaqueJoinUtils.getOpcodes(left.output, right.output, leftKeys, rightKeys, condition)
-
+    println("union all exec started")
     val leftRDD = left.asInstanceOf[OpaqueOperatorExec].executeBlocked()
     val rightRDD = right.asInstanceOf[OpaqueOperatorExec].executeBlocked()
     Utils.ensureCached(leftRDD)

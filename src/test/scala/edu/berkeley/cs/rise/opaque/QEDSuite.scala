@@ -41,6 +41,7 @@ import edu.berkeley.cs.rise.opaque.benchmark._
 import edu.berkeley.cs.rise.opaque.execution.Opcode._
 import edu.berkeley.cs.rise.opaque.execution._
 import edu.berkeley.cs.rise.opaque.implicits._
+import edu.berkeley.cs.rise.opaque.Utils._
 
 class QEDSuite extends FunSuite with BeforeAndAfterAll {
   val spark = SparkSession.builder()
@@ -90,15 +91,22 @@ class QEDSuite extends FunSuite with BeforeAndAfterAll {
 
   test("flatbuffers union") {
     val left_df = spark.createDataFrame(
-      (1 to 20).map(x => (x, x.toString)).reverse)
+      (20 until 40).map(x => (x, x.toString)).reverse)
       .toDF("a", "b").encrypted
     val right_df = spark.createDataFrame(
-      (20 to 40).map(x => (x, x.toString)).reverse)
+      (0 until 20).map(x => (x, x.toString)).reverse)
       .toDF("a", "b").encrypted
 
+
     val result = left_df.unionAll(right_df)
-    // result.explain(true)
-    result.show()
+    result.explain(true)
+
+    val collected = result.collect
+    println("------begin printing union result--------")
+    collected.foreach(println)
+    println("------printed union result---------------")
+
+    // result.show()
   }
 
   // test("encAggregate - final run split across multiple partitions") {
