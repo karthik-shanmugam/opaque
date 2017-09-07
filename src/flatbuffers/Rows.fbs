@@ -58,9 +58,9 @@ table Row {
 
 // Root of plaintext batch
 table Rows {
-    parent_token: int;
-    child_token: int;
-    seq_num: int;
-    max_seq_num: int;
+//    parent_token: int;
+//    child_token: int;
+//    seq_num: int;
+//    max_seq_num: int;
     rows:[Row];
 }
