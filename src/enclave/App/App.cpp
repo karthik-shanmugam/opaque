@@ -1149,6 +1149,34 @@ Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_NonObliviousAggregateStep2
   return ret;
 }
 
+
+
+JNIEXPORT jintArray JNICALL
+Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_DependenciesForNode(
+  JNIEnv *env, jobject obj, jbyteArray dag, jint node) {
+  jboolean if_copy;
+
+  uint32_t dag_length = (uint32_t) env->GetArrayLength(dag);
+  uint32_t *dag_ptr = (uint32_t *) env->GetByteArrayElements(dag, &if_copy);
+
+
+
+  uint32_t *output_tokens;
+  size_t output_tokens_length;
+
+  sgx_check("deserialize and search dag test",
+            ecall_get_dependencies_for_node(
+              dag_ptr, dag_length, node,
+              &output_tokens, &output_tokens_length));
+
+  jintArray ret = env->NewIntArray(output_tokens_length);
+  env->SetIntArrayRegion(ret, 0, output_tokens_length, (jint *) output_tokens);
+  free(output_tokens);
+
+  env->ReleaseByteArrayElements(dag_length, (jbyte *) dag_ptr, 0);
+  return ret;
+}
+
 /* application entry */
 //SGX_CDECL
 int SGX_CDECL main(int argc, char *argv[])

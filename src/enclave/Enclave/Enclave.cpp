@@ -131,6 +131,14 @@ void ecall_non_oblivious_aggregate_step2(
     output_rows, output_rows_length);
 }
 
+void ecall_get_dependencies_for_node(
+  uint8_t *dag_ptr, size_t dag_length, int node,
+  uint32_t **output_tokens, size_t *output_tokens) {
+  get_dependencies_for_node(
+    dag_ptr, dag_length, node,
+    output_tokens, output_tokens_length);
+}
+
 sgx_status_t ecall_enclave_init_ra(int b_pse, sgx_ra_context_t *p_context) {
   return enclave_init_ra(b_pse, p_context);
 }
