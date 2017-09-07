@@ -50,6 +50,10 @@ class SGXEnclave extends java.io.Serializable {
     eid: Long, aggOp: Array[Byte], inputRows: Array[Byte], nextPartitionFirstRow: Array[Byte],
     prevPartitionLastGroup: Array[Byte], prevPartitionLastRow: Array[Byte]): Array[Byte]
 
+  // playing with dag serialization stuff
+  @native def DependenciesForNode(
+    dag: Array[Byte]): Array[Int]
+
   // Remote attestation, enclave side
   @native def RemoteAttestation0(): Array[Byte]
   @native def RemoteAttestation1(eid: Long): Array[Byte]
