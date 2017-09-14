@@ -18,7 +18,6 @@ void get_dependencies_for_node(
     *output_tokens_length = 0;
     return;
   }
-  // uint8_t *buf = nullptr;
   ocall_malloc(target->dependencies()->size() * sizeof(int), (uint8_t **) output_tokens);
   *output_tokens_length = target->dependencies()->size();
 
@@ -26,11 +25,7 @@ void get_dependencies_for_node(
     *output_tokens[i] = target->dependencies()->Get(i)->token();
   }
   *output_tokens_length = target->dependencies()->size();
-  // tuix::DAGNode *target = nullptr;
 
-  // std::unordered_set<int> visited = {};
-  
-  // for (ptr = ar.begin(); ptr < ar.end(); ptr++)
 
 }
 
@@ -38,12 +33,12 @@ tuix::DAGNode *find_node(
     const tuix::DAG *dag,
     int token) {
 
-    std::unordered_set<int> visited = {};
+    // std::unordered_set<int> visited = {};
 
     std::queue<tuix::DAGNode *> fringe;
   
     for (auto ptr = dag->outputs()->begin(); ptr != dag->outputs()->end(); ptr++) {
-        add_dependencies(&fringe, &visited, (tuix::DAGNode *) *ptr);
+        add_dependencies(&fringe, /*&visited,*/ (tuix::DAGNode *) *ptr);
     }
 
     while (!fringe.empty()) {
@@ -52,7 +47,7 @@ tuix::DAGNode *find_node(
         if (curr->token() == token) {
             return curr;
         } else {
-            add_dependencies(&fringe, &visited, (tuix::DAGNode *) &*curr);
+            add_dependencies(&fringe, /*&visited,*/ (tuix::DAGNode *) &*curr);
         }
     }
     return nullptr;
@@ -60,11 +55,11 @@ tuix::DAGNode *find_node(
 
 void add_dependencies(
     std::queue<tuix::DAGNode *> *fringe,
-    std::unordered_set<int> *visited,
+    // std::unordered_set<int> *visited,
     tuix::DAGNode *curr) {
     for (auto ptr = curr->dependencies()->begin(); ptr != curr->dependencies()->end(); ptr++) {
-        if (visited->count(ptr->token()) == 0) {
-            visited->insert(ptr->token());
+        if (1 /* && visited->count(ptr->token()) == 0*/) {
+            // visited->insert(ptr->token());
             fringe->push((tuix::DAGNode *) *ptr);
         }
     }

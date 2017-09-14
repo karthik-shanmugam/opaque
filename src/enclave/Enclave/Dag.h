@@ -5,7 +5,7 @@
 // #include <typeinfo>
 #include <queue>
 
-#include <unordered_set>
+// #include <unordered_set>
 
 
 #include "Flatbuffers.h"
@@ -25,7 +25,7 @@ tuix::DAGNode *find_node(
 
 void add_dependencies(
     std::queue<tuix::DAGNode *> *fringe,
-    std::unordered_set<int> *visited,
+    // std::unordered_set<int> *visited,
     tuix::DAGNode *curr);
 
 #endif // DAG_H
