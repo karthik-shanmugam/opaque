@@ -1153,7 +1153,7 @@ Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_NonObliviousAggregateStep2
 
 JNIEXPORT jintArray JNICALL
 Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_DependenciesForNode(
-  JNIEnv *env, jobject obj, jbyteArray dag, jint node) {
+  JNIEnv *env, jobject obj, jlong eid, jbyteArray dag, jint node) {
   jboolean if_copy;
 
   uint32_t dag_length = (uint32_t) env->GetArrayLength(dag);
@@ -1166,7 +1166,7 @@ Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_DependenciesForNode(
 
   sgx_check("deserialize and search dag test",
             ecall_get_dependencies_for_node(
-              dag_ptr, dag_length, node,
+              eid, dag_ptr, dag_length, node,
               &output_tokens, &output_tokens_length));
 
   jintArray ret = env->NewIntArray(output_tokens_length);
