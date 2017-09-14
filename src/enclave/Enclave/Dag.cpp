@@ -10,7 +10,9 @@ void get_dependencies_for_node(
   uint32_t **output_tokens, size_t *output_tokens_length) {
   (void) dag_length;
 
-  tuix::DAG *dag = flatbuffers::GetRoot<tuix::DAG>(dag_ptr);
+  uint8_t *why = dag_ptr;
+
+  tuix::DAG *dag = flatbuffers::GetRoot<tuix::DAG>(why);
 
   tuix::DAGNode *target = find_node(dag, node);
   if (target == nullptr) {
