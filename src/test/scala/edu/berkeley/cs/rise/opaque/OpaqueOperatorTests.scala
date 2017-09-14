@@ -330,10 +330,14 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
     val target = dag(0)
 
     val res = enclave.DependenciesForNode(eid, builder.sizedByteArray(), target.token)
+    println("begin dag test ouput ------------")
     println(res)
     println(target.dependencies)
+    println("end dag test ouput --------------")
+
 
   }
+  testDAGSerialization()
 
 }
 
