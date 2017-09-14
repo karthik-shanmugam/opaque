@@ -12,6 +12,9 @@ void get_dependencies_for_node(
 
   const tuix::DAG *dag = flatbuffers::GetRoot<tuix::DAG>(dag_ptr);
 
+  (void) dag;
+  (void) node;
+
   tuix::DAGNode *target = nullptr;//find_node(dag, node);
   if (target == nullptr) {
     *output_tokens = nullptr;
