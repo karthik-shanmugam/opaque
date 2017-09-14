@@ -11,6 +11,7 @@ set(SOURCES
   Join.cpp
   Project.cpp
   Sort.cpp
+  Dag.cpp
   isv_enclave.cpp
   sgxaes.cpp
   sgxaes_asm.o
