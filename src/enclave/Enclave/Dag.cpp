@@ -63,10 +63,10 @@ void add_dependencies(
     // std::unordered_set<int> *visited,
     tuix::DAGNode *curr) {
     for (auto ptr = curr->dependencies()->begin(); ptr != curr->dependencies()->end(); ptr++) {
-        if (visited->count(ptr->token()) == 0) {
-            visited->insert(ptr->token());
-            fringe->push((tuix::DAGNode *) *ptr);
-        }
+        // if (visited->count(ptr->token()) == 0) {
+        //     visited->insert(ptr->token());
+        //     fringe->push((tuix::DAGNode *) *ptr);
+        // }
     }
 
 }
