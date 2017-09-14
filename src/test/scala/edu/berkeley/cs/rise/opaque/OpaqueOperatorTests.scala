@@ -312,7 +312,7 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
         .toDF(columnNames: _*))
 
   def testDAGSerialization(): Unit = {
-    val data = spark.sparkContext.parallelize(0 to 100, 2)
+    val data = spark.sparkContext.parallelize(0 to 100)
     val rdd = (
         data
         .map(i=>i+1)
