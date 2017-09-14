@@ -47,11 +47,12 @@ tuix::DAGNode *find_node(
     }
 
     while (!fringe.empty()) {
-        tuix::DAGNode *curr = fringe.pop();
+        tuix::DAGNode *curr = fringe.front();
+        fringe.pop();
         if (curr->token() == token) {
             return curr;
         } else {
-            add_dependencies(&fringe, &visited, curr);
+            add_dependencies(&fringe, &visited, (tuix::DAGNode *) curr);
         }
     }
     return nullptr;
@@ -64,7 +65,7 @@ void add_dependencies(
     for (auto ptr = curr->dependencies()->begin(); ptr != curr->dependencies()->end(); ptr++) {
         if (visited->count(ptr->token()) == 0) {
             visited->insert(ptr->token());
-            fringe->push(ptr);
+            fringe->push((tuix::DAGNode *) ptr);
         }
     }
 
