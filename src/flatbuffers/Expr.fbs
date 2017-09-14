@@ -128,3 +128,14 @@ table If {
     true_value:Expr;
     false_value:Expr;
 }
+
+table DAGNode {
+    rdd_id: int;
+    partition_id: int;
+    token: int;
+    dependencies: [DAGNode];
+}
+
+table DAG {
+    outputs: [DAGNode];
+}

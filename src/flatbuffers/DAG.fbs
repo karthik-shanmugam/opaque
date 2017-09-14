@@ -7,13 +7,13 @@ namespace edu.berkeley.cs.rise.opaque.tuix;
 // This file is part of the interface between Spark SQL and the SGX enclave --
 // the "trusted-untrusted interface," or TUIX.
 
-table DAGNode {
-    rdd_id: int;
-    partition_id: int;
-    token: int;
-    dependencies: [DAGNode];
-}
+// table DAGNode {
+//     rdd_id: int;
+//     partition_id: int;
+//     token: int;
+//     dependencies: [DAGNode];
+// }
 
-table DAG {
-    outputs: [DAGNode];
-}
+// table DAG {
+//     outputs: [DAGNode];
+// }
