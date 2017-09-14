@@ -3,9 +3,13 @@
 
 // #include <functional>
 // #include <typeinfo>
-#include <queue>
+// 
+// 
+// 
+// 
+// #include <queue>
 
-#include <unordered_set>
+// #include <unordered_set>
 
 
 #include "Flatbuffers.h"
@@ -20,13 +24,13 @@ void get_dependencies_for_node(
   uint8_t *dag_ptr, size_t dag_length, int node,
   uint32_t **output_tokens, size_t *output_tokens_length);
 
-tuix::DAGNode *find_node(
-    const tuix::DAG *dag, int token);
+// tuix::DAGNode *find_node(
+//     const tuix::DAG *dag, int token);
 
-void add_dependencies(
-    std::queue<tuix::DAGNode *> *fringe,
-    std::unordered_set<int> *visited,
-    tuix::DAGNode *curr);
+// void add_dependencies(
+//     std::queue<tuix::DAGNode *> *fringe,
+//     std::unordered_set<int> *visited,
+//     tuix::DAGNode *curr);
 
 #endif // DAG_H
 

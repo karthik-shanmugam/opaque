@@ -12,7 +12,7 @@ void get_dependencies_for_node(
 
   const tuix::DAG *dag = flatbuffers::GetRoot<tuix::DAG>(dag_ptr);
 
-  tuix::DAGNode *target = find_node(dag, node);
+  tuix::DAGNode *target = nullptr;//find_node(dag, node);
   if (target == nullptr) {
     *output_tokens = nullptr;
     *output_tokens_length = 0;
@@ -34,39 +34,39 @@ void get_dependencies_for_node(
 
 }
 
-tuix::DAGNode *find_node(
-    const tuix::DAG *dag,
-    int token) {
+// tuix::DAGNode *find_node(
+//     const tuix::DAG *dag,
+//     int token) {
 
-    std::unordered_set<int> visited = {};
+//     std::unordered_set<int> visited = {};
 
-    std::queue<tuix::DAGNode *> fringe;
+//     std::queue<tuix::DAGNode *> fringe;
   
-    for (auto ptr = dag->outputs()->begin(); ptr != dag->outputs()->end(); ptr++) {
-        add_dependencies(&fringe, &visited, (tuix::DAGNode *) *ptr);
-    }
+//     for (auto ptr = dag->outputs()->begin(); ptr != dag->outputs()->end(); ptr++) {
+//         add_dependencies(&fringe, &visited, (tuix::DAGNode *) *ptr);
+//     }
 
-    while (!fringe.empty()) {
-        tuix::DAGNode *curr = fringe.front();
-        fringe.pop();
-        if (curr->token() == token) {
-            return curr;
-        } else {
-            add_dependencies(&fringe, &visited, (tuix::DAGNode *) &*curr);
-        }
-    }
-    return nullptr;
-}
+//     while (!fringe.empty()) {
+//         tuix::DAGNode *curr = fringe.front();
+//         fringe.pop();
+//         if (curr->token() == token) {
+//             return curr;
+//         } else {
+//             add_dependencies(&fringe, &visited, (tuix::DAGNode *) &*curr);
+//         }
+//     }
+//     return nullptr;
+// }
 
-void add_dependencies(
-    std::queue<tuix::DAGNode *> *fringe,
-    std::unordered_set<int> *visited,
-    tuix::DAGNode *curr) {
-    for (auto ptr = curr->dependencies()->begin(); ptr != curr->dependencies()->end(); ptr++) {
-        if (visited->count(ptr->token()) == 0) {
-            visited->insert(ptr->token());
-            fringe->push((tuix::DAGNode *) *ptr);
-        }
-    }
+// void add_dependencies(
+//     std::queue<tuix::DAGNode *> *fringe,
+//     std::unordered_set<int> *visited,
+//     tuix::DAGNode *curr) {
+//     for (auto ptr = curr->dependencies()->begin(); ptr != curr->dependencies()->end(); ptr++) {
+//         if (visited->count(ptr->token()) == 0) {
+//             visited->insert(ptr->token());
+//             fringe->push((tuix::DAGNode *) *ptr);
+//         }
+//     }
 
-}
+// }
