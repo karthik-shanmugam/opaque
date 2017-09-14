@@ -1,4 +1,3 @@
-include "Rows.fbs";
 
 // This file is part of the interface between Spark SQL and the SGX enclave --
 // the "trusted-untrusted interface," or TUIX.
