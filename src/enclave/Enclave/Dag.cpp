@@ -27,15 +27,18 @@ void get_dependencies_for_node(
   }
 
 
+    ocall_malloc(sizeof(int) * 1, (uint8_t **) output_tokens);
+    *output_tokens_length = 1;
+    *output_tokens[0] = 1996;
+    return;
 
+  // ocall_malloc(target->dependencies()->size() * sizeof(int), (uint8_t **) output_tokens);
+  // *output_tokens_length = target->dependencies()->size();
 
-  ocall_malloc(target->dependencies()->size() * sizeof(int), (uint8_t **) output_tokens);
-  *output_tokens_length = target->dependencies()->size();
-
-  for (size_t i=0; i < target->dependencies()->size(); i++) {
-    *output_tokens[i] = target->dependencies()->Get(i)->token();
-  }
-  *output_tokens_length = target->dependencies()->size();
+  // for (size_t i=0; i < target->dependencies()->size(); i++) {
+  //   *output_tokens[i] = target->dependencies()->Get(i)->token();
+  // }
+  // *output_tokens_length = target->dependencies()->size();
 
 
 }
