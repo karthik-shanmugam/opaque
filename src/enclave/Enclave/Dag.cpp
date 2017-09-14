@@ -8,7 +8,7 @@ void get_dependencies_for_node(
   uint8_t *dag_ptr, size_t dag_length, int node,
   uint32_t **output_tokens, size_t *output_tokens_length) {
 
-  tuix::DAG *dag = flatbuffers::GetRoot<tuix::EncryptedBlocks>(dag_ptr);
+  tuix::DAG *dag = flatbuffers::GetRoot<tuix::DAG>(dag_ptr);
 
   tuix::DAGNode *target = find_node(dag, node);
   if (target == nullptr) {

@@ -14,5 +14,13 @@ void get_dependencies_for_node(
   uint8_t *dag_ptr, size_t dag_length, int node,
   uint32_t **output_tokens, size_t *output_tokens_length);
 
+tuix::DAGNode *find_node(
+    tuix::DAG *dag, int token);
+
+void add_dependencies(
+    queue<tuix::DAGNode *> *fringe,
+    std::unordered_set<int> *visited,
+    tuix::DAGNode *curr);
+
 #endif // DAG_H
 
