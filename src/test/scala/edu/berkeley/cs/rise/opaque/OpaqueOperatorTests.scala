@@ -323,7 +323,7 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
         .map{case (a, b) => (a, b+1)}
         .reduceByKey((a, b)=>a+b)
         )
-    val dag = DAGUtils.rddToDAG(rdd)
+    val dag = DAGUtils.rddToDAG3(rdd)
     val builder = new FlatBufferBuilder
 
     builder.finish(
