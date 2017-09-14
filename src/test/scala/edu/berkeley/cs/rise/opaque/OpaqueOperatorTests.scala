@@ -327,6 +327,8 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
     val builder = new FlatBufferBuilder
 
     DAGUtils.flatbuffersSerializeDAG(builder, dag)
+    builder.finish()
+
     val (enclave, eid) = Utils.initEnclave()
 
     val target = dag(0)
