@@ -35,7 +35,9 @@ import org.scalatest.FunSuite
 import edu.berkeley.cs.rise.opaque.benchmark._
 import edu.berkeley.cs.rise.opaque.execution.EncryptedBlockRDDScanExec
 
-import edu.berkeley.cs.rise.opaque.dag
+import edu.berkeley.cs.rise.opaque._
+import com.google.flatbuffers.FlatBufferBuilder
+
 
 trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
   def spark: SparkSession
@@ -325,7 +327,7 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
     DAGUtils.flatbuffersSerializeDAG(builder, dag)
     val (enclave, eid) = Utils.initEnclave()
 
-    target = dag(0).token
+    val target = dag(0).token
 
     val res = enclave.DependenciesForNode(eid, builder.sizedByteArray(), target)
     println(res)
