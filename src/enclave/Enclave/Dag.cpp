@@ -22,8 +22,8 @@ void get_dependencies_for_node(
   ocall_malloc(target->dependencies()->size() * sizeof(int), (uint8_t **) output_tokens);
   *output_tokens_length = target->dependencies()->size();
 
-  for (int i=0; i < target->dependencies()->size(); i++) {
-    *output_tokens[i] = target->dependencies()->Get(i);
+  for (size_t i=0; i < target->dependencies()->size(); i++) {
+    *output_tokens[i] = target->dependencies()->Get(i)->value();
   }
   *output_tokens_length = target->dependencies()->size();
   // tuix::DAGNode *target = nullptr;
@@ -42,7 +42,7 @@ tuix::DAGNode *find_node(
 
     std::queue<tuix::DAGNode *> fringe;
   
-    for (tuix::DAGNode *ptr = dag->outputs()->begin(); ptr < dag->outputs()->end(); ptr++) {
+    for (auto ptr = dag->outputs()->begin(); ptr < dag->outputs()->end(); ptr++) {
         add_dependencies(&fringe, &visited, ptr);
     }
 
