@@ -318,7 +318,7 @@ object DAGUtils {
 
     def flatbuffersSerializeDAG(builder: FlatBufferBuilder, dag: SparkDAG): Int = {
 
-      tuix.DAG.createDag(
+      tuix.DAG.createDAG(
         builder,
         tuix.DAG.createOutputsVector(
           builder,
@@ -331,7 +331,7 @@ object DAGUtils {
               node.token,
               tuix.DAGNode.createDependenciesVector(builder, dependencyOffsets.toArray)
             )
-          }
+          }.toArray
         ).toArray
       )
     }
