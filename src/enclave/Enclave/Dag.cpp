@@ -8,6 +8,7 @@
 void get_dependencies_for_node(
   uint8_t *dag_ptr, size_t dag_length, int node,
   uint32_t **output_tokens, size_t *output_tokens_length) {
+  (void) dag_length;
 
   tuix::DAG *dag = flatbuffers::GetRoot<tuix::DAG>(dag_ptr);
 
@@ -18,12 +19,13 @@ void get_dependencies_for_node(
     return;
   }
   // uint8_t *buf = nullptr;
-  ocall_malloc(target->dependencies()->size() * sizeof(int), output_tokens);
-  *output_tokens_length = target->dependencies->size();
+  ocall_malloc(target->dependencies()->size() * sizeof(int), (uint8_t **) output_tokens);
+  *output_tokens_length = target->dependencies()->size();
 
-  for (int i=0; i < target->dependencies()->size()) {
-    *output_tokens[i] = target->dependencies->Get(i);
+  for (int i=0; i < target->dependencies()->size(); i++) {
+    *output_tokens[i] = target->dependencies()->Get(i);
   }
+  *output_tokens_length = target->dependencies()->size();
   // tuix::DAGNode *target = nullptr;
 
   // std::unordered_set<int> visited = {};
