@@ -35,7 +35,7 @@ void get_dependencies_for_node(
   for (size_t i=0; i < target->dependencies()->size(); i++) {
     *output_tokens[i] = target->dependencies()->Get(i)->token();
   }
-  *output_tokens_length = sizeof(int) * target->dependencies()->size();
+  *output_tokens_length = target->dependencies()->size();
 
 
 }
