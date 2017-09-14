@@ -14,13 +14,19 @@ void get_dependencies_for_node(
 
   tuix::DAGNode *target = find_node(dag, node);
   if (target == nullptr) {
-    *output_tokens = nullptr;
-    *output_tokens_length = 0;
+    // *output_tokens = nullptr;
+    // *output_tokens_length = 0;
+    // return;
+
+    ocall_malloc(sizeof(int) * 1, (uint8_t **) output_tokens);
+    *output_tokens_length = 1;
+    *output_tokens[0] = 420;
     return;
+
+
   }
 
-  // ocall_malloc(sizeof(int) * 1, (uint8_t **) output_tokens);
-  // *output_tokens_length = 1;
+
 
 
   ocall_malloc(target->dependencies()->size() * sizeof(int), (uint8_t **) output_tokens);
