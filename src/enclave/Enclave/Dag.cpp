@@ -66,7 +66,7 @@ tuix::DAGNode *find_node(
         if (curr->token() == token) {
             return curr;
         } else {
-            add_dependencies(&fringe, /*&visited,*/ (tuix::DAGNode *) &*curr);
+            add_dependencies(&fringe, /*&visited,*/ (tuix::DAGNode *) curr);
         }
     }
     return nullptr;
@@ -83,7 +83,7 @@ void add_dependencies(
     //     }
     // }
     for (size_t i=0; i < curr->dependencies()->size(); i++) {
-      fringe->push((tuix::DAGNode *) *curr->dependencies()->Get(i));
+      fringe->push((tuix::DAGNode *) curr->dependencies()->Get(i));
     }
 
 }
