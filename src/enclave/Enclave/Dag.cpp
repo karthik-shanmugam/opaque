@@ -43,7 +43,7 @@ tuix::DAGNode *find_node(
     std::queue<tuix::DAGNode *> fringe;
   
     for (auto ptr = dag->outputs()->begin(); ptr != dag->outputs()->end(); ptr++) {
-        add_dependencies(&fringe, &visited, ptr);
+        add_dependencies(&fringe, &visited, (tuix::DAGNode *) ptr);
     }
 
     while (!fringe.empty()) {
