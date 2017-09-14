@@ -1173,7 +1173,7 @@ Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_DependenciesForNode(
   env->SetIntArrayRegion(ret, 0, output_tokens_length, (jint *) output_tokens);
   free(output_tokens);
 
-  env->ReleaseByteArrayElements(dag_length, (jbyte *) dag_ptr, 0);
+  env->ReleaseByteArrayElements(dag, (jbyte *) dag_ptr, 0);
   return ret;
 }
 

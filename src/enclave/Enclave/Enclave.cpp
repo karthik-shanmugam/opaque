@@ -133,7 +133,7 @@ void ecall_non_oblivious_aggregate_step2(
 
 void ecall_get_dependencies_for_node(
   uint8_t *dag_ptr, size_t dag_length, int node,
-  uint32_t **output_tokens, size_t *output_tokens) {
+  uint32_t **output_tokens, size_t *output_tokens_length) {
   get_dependencies_for_node(
     dag_ptr, dag_length, node,
     output_tokens, output_tokens_length);
