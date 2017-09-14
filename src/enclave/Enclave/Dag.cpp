@@ -3,6 +3,7 @@
 #include "ExpressionEvaluation.h"
 #include "common.h"
 #include <queue>
+#include <unordered_set>
 
 void get_dependencies_for_node(
   uint8_t *dag_ptr, size_t dag_length, int node,

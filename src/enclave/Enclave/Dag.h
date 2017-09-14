@@ -5,6 +5,9 @@
 #include <typeinfo>
 #include <queue>
 
+#include <unordered_set>
+
+
 #include "Flatbuffers.h"
 #include "ExpressionEvaluation.h"
 #include "common.h"
