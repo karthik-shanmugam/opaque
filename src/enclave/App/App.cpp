@@ -1154,6 +1154,7 @@ Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_NonObliviousAggregateStep2
 JNIEXPORT jintArray JNICALL
 Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_DependenciesForNode(
   JNIEnv *env, jobject obj, jlong eid, jbyteArray dag, jint node) {
+  (void)obj;
   jboolean if_copy;
 
   uint32_t dag_length = (uint32_t) env->GetArrayLength(dag);
