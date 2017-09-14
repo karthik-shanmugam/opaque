@@ -48,7 +48,7 @@ flatbuffersGenCppDir := sourceManaged.value / "flatbuffers" / "gen-cpp"
 val buildType = SettingKey[BuildType]("buildType",
   "Release, Debug, or Profile.")
 
-buildType := Release
+buildType := Debug 
 
 scalacOptions ++= { if (buildType.value == Debug) Seq("-g:vars") else Nil }
 javaOptions ++= { if (buildType.value == Debug) Seq("-Xdebug", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000") else Nil }

@@ -3,7 +3,7 @@
 // #include "ExpressionEvaluation.h"
 // #include "common.h"
 #include <queue>
-// #include <unordered_set>
+#include <unordered_set>
 
 void get_dependencies_for_node(
   uint8_t *dag_ptr, size_t dag_length, int node,
@@ -33,11 +33,12 @@ void get_dependencies_for_node(
     // *output_tokens[1] = target->dependencies()->Get(0)->token();
     // return;
 
-    ocall_malloc(target->dependencies()->size() * sizeof(int), (uint8_t **) output_tokens);
+    ocall_malloc(target->dependencies()->size() * sizeof(uint32_t)*4, (uint8_t **) output_tokens);
     // *output_tokens_length = target->dependencies()->size();
 
     for (size_t i=0; i < target->dependencies()->size(); i++) {
-      *output_tokens[i] = target->dependencies()->Get(i)->token();
+        int temp = target->dependencies()->Get(i)->token();
+	(*output_tokens)[i] = temp;//target->dependencies()->Get(i)->token();
     }
     *output_tokens_length = target->dependencies()->size();
 
@@ -48,7 +49,7 @@ tuix::DAGNode *find_node(
     const tuix::DAG *dag,
     int token) {
 
-    // std::unordered_set<int> visited = {};
+    std::unordered_set<int> visited = {};
 
     std::queue<tuix::DAGNode *> fringe;
   
