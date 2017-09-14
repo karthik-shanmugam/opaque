@@ -9,6 +9,7 @@
 #include "Join.h"
 #include "Project.h"
 #include "Sort.h"
+#include "Dag.h"
 #include "isv_enclave.h"
 
 void ecall_encrypt(uint8_t *plaintext, uint32_t plaintext_length,
