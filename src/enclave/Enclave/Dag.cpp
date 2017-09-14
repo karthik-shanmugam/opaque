@@ -43,11 +43,11 @@ tuix::DAGNode *find_node(
     std::queue<tuix::DAGNode *> fringe;
   
     for (auto ptr = dag->outputs()->begin(); ptr != dag->outputs()->end(); ptr++) {
-        add_dependencies(&fringe, &visited, ptr->child());
+        add_dependencies(&fringe, &visited, ptr);
     }
 
     while (!fringe.empty()) {
-        tuix::DAGNode *curr = fringe.pop()
+        tuix::DAGNode *curr = fringe.pop();
         if (curr->token() == token) {
             return curr;
         } else {
@@ -62,9 +62,9 @@ void add_dependencies(
     std::unordered_set<int> *visited,
     tuix::DAGNode *curr) {
     for (auto ptr = curr->dependencies()->begin(); ptr != curr->dependencies()->end(); ptr++) {
-        if (visited->count(ptr->child()->token()) == 0) {
-            visited->insert(ptr->child()->token());
-            fringe->push(ptr->child());
+        if (visited->count(ptr->token()) == 0) {
+            visited->insert(ptr->token());
+            fringe->push(ptr);
         }
     }
 
