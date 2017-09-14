@@ -6,19 +6,19 @@
 
 void get_dependencies_for_node(
   uint8_t *dag_ptr, size_t dag_length, int node,
-  uint32_t **output_tokens, size_t *output_tokens_len) {
+  uint32_t **output_tokens, size_t *output_tokens_length) {
 
   tuix::DAG *dag = flatbuffers::GetRoot<tuix::EncryptedBlocks>(dag_ptr);
 
   tuix::DAGNode *target = find_node(dag, node);
   if (target == nullptr) {
     *output_tokens = nullptr;
-    *output_tokens_len = 0;
+    *output_tokens_length = 0;
     return;
   }
   // uint8_t *buf = nullptr;
   ocall_malloc(target->dependencies()->size() * sizeof(int), output_tokens);
-  *output_tokens_len = target->dependencies->size();
+  *output_tokens_length = target->dependencies->size();
 
   for (int i=0; i < target->dependencies()->size()) {
     *output_tokens[i] = target->dependencies->Get(i);
