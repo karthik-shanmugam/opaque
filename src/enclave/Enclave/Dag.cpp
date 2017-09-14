@@ -37,7 +37,7 @@ tuix::DAGNode *find_node(
 
     std::unordered_set<int> visited = {};
 
-    queue<tuix::DAGNode *> fringe;
+    std::queue<tuix::DAGNode *> fringe;
   
     for (tuix::DAGNode *ptr = dag->outputs()->begin(); ptr < dag->outputs()->end(); ptr++) {
         add_dependencies(&fringe, &visited, ptr);
@@ -55,7 +55,7 @@ tuix::DAGNode *find_node(
 }
 
 void add_dependencies(
-    queue<tuix::DAGNode *> *fringe,
+    std::queue<tuix::DAGNode *> *fringe,
     std::unordered_set<int> *visited,
     tuix::DAGNode *curr) {
     for (tuix::DAGNode *ptr = curr->dependencies()->begin(); ptr < curr->dependencies()->end(); ptr++) {

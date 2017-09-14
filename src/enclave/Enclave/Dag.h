@@ -21,7 +21,7 @@ tuix::DAGNode *find_node(
     tuix::DAG *dag, int token);
 
 void add_dependencies(
-    queue<tuix::DAGNode *> *fringe,
+    std::queue<tuix::DAGNode *> *fringe,
     std::unordered_set<int> *visited,
     tuix::DAGNode *curr);
 
