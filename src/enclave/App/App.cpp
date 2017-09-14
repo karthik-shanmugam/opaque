@@ -1157,7 +1157,7 @@ Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_DependenciesForNode(
   jboolean if_copy;
 
   uint32_t dag_length = (uint32_t) env->GetArrayLength(dag);
-  uint32_t *dag_ptr = (uint32_t *) env->GetByteArrayElements(dag, &if_copy);
+  uint8_t *dag_ptr = (uint8_t *) env->GetByteArrayElements(dag, &if_copy);
 
 
 
