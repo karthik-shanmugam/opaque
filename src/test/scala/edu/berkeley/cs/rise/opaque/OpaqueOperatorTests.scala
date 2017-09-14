@@ -314,27 +314,27 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
   def testDAGSerialization(): Unit = {
     val x = 5
     val data = spark.sparkContext.makeRDD(0 to 100, 2)
-    val rdd = (
-        data
-        .map(i=>i+1)
-        .map(i=>(i, i))
-        .reduceByKey((a, b)=>a+b)
-        .map{case (a, b) => (a, b+1)}
-        .reduceByKey((a, b)=>a+b)
-        )
-    val dag = DAGUtils.rddToDAG(rdd)
-    val builder = new FlatBufferBuilder
+    // val rdd = (
+    //     data
+    //     .map(i=>i+1)
+    //     .map(i=>(i, i))
+    //     .reduceByKey((a, b)=>a+b)
+    //     .map{case (a, b) => (a, b+1)}
+    //     .reduceByKey((a, b)=>a+b)
+    //     )
+    // val dag = DAGUtils.rddToDAG(rdd)
+    // val builder = new FlatBufferBuilder
 
-    DAGUtils.flatbuffersSerializeDAG(builder, dag)
-    val (enclave, eid) = Utils.initEnclave()
+    // DAGUtils.flatbuffersSerializeDAG(builder, dag)
+    // val (enclave, eid) = Utils.initEnclave()
 
-    val target = dag(0)
+    // val target = dag(0)
 
-    val res = enclave.DependenciesForNode(eid, builder.sizedByteArray(), target.token)
-    println("begin dag test ouput ------------")
-    println(res)
-    println(target.dependencies)
-    println("end dag test ouput --------------")
+    // val res = enclave.DependenciesForNode(eid, builder.sizedByteArray(), target.token)
+    // println("begin dag test ouput ------------")
+    // println(res)
+    // println(target.dependencies)
+    // println("end dag test ouput --------------")
 
 
   }
