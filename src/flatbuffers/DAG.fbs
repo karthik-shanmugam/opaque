@@ -4,8 +4,6 @@
 
 namespace edu.berkeley.cs.rise.opaque.tuix;
 
-namespace edu.berkeley.cs.rise.opaque.tuix;
-
 // This file is part of the interface between Spark SQL and the SGX enclave --
 // the "trusted-untrusted interface," or TUIX.
 
