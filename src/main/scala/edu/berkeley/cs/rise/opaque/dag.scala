@@ -1,3 +1,4 @@
+package edu.berkeley.cs.rise.opaque
 
 import scala.collection.mutable
 import scala.util.Random
