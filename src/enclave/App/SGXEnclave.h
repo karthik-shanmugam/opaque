@@ -75,7 +75,7 @@ extern "C" {
     JNIEnv *, jobject, jbyteArray);
 
   JNIEXPORT jintArray JNICALL Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_DependenciesForNode(
-    JNIEnv *, jobject, jbyteArray, jint);
+    JNIEnv *, jobject, jlong, jbyteArray, jint);
   
 #ifdef __cplusplus
 }
