@@ -340,6 +340,70 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
     println(target.dependencies.map{_.token})
     println("end dag test ouput --------------")
 
+  }
+
+  test("deep dag serialization test"){
+    val x = 5
+    val data = for (i <- 0 until 256) yield i
+    val startRdd = spark.sparkContext.makeRDD(data, 2)
+    val rdd = (
+        startRdd
+        .map(i=>i+1)
+        .map(i=>i+2)
+        .map(i=>i+3)
+        .map(i=>i+4)
+        .map(i=>(i, i))
+        .reduceByKey((a, b)=>a+b)
+        .map{case (a, b) => (a, b+1)}
+        .reduceByKey((a, b)=>a+b)
+        )
+    val dag = DAGUtils.rddToDAG(rdd)
+    val builder = new FlatBufferBuilder
+
+    builder.finish(
+      DAGUtils.flatbuffersSerializeDAG(builder, dag))
+
+    val (enclave, eid) = Utils.initEnclave()
+
+    val target = dag(0).dependencies(0).dependencies(0).dependencies(0)
+
+    val res = enclave.DependenciesForNode(eid, builder.sizedByteArray(), target.token)
+    println("begin dag test ouput ------------")
+    println(DAGUtils.DAGtoString(dag))
+    println(res.toList)
+    println(target.dependencies.map{_.token})
+    println("end dag test ouput --------------")
+
+  }
+
+  test("multiple dependency dag serialization test"){
+    val x = 5
+    val data = for (i <- 0 until 256) yield i
+    val startRdd = spark.sparkContext.makeRDD(data, 2)
+    val rdd = (
+        startRdd
+        .map(i=>i+1)
+        .map(i=>(i, i))
+        .reduceByKey((a, b)=>a+b)
+        .map{case (a, b) => (a, b+1)}
+        .reduceByKey((a, b)=>a+b)
+        )
+    val dag = DAGUtils.rddToDAG3(rdd)
+    val builder = new FlatBufferBuilder
+
+    builder.finish(
+      DAGUtils.flatbuffersSerializeDAG(builder, dag))
+
+    val (enclave, eid) = Utils.initEnclave()
+
+    val target = dag(0).dependencies(0)
+
+    val res = enclave.DependenciesForNode(eid, builder.sizedByteArray(), target.token)
+    println("begin dag test ouput ------------")
+    println(DAGUtils.DAGtoString(dag))
+    println(res.toList)
+    println(target.dependencies.map{_.token})
+    println("end dag test ouput --------------")
 
   }
   // testDAGSerialization()
