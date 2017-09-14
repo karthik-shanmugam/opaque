@@ -332,7 +332,7 @@ object DAGUtils {
               tuix.DAGNode.createDependenciesVector(builder, dependencyOffsets.toArray)
             )
           }.toArray
-        ).toArray
+        )
       )
     }
 }
