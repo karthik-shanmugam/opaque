@@ -21,7 +21,7 @@ void get_dependencies_for_node(
   uint32_t **output_tokens, size_t *output_tokens_length);
 
 tuix::DAGNode *find_node(
-    tuix::DAG *dag, int token);
+    const tuix::DAG *dag, int token);
 
 void add_dependencies(
     std::queue<tuix::DAGNode *> *fringe,

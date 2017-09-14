@@ -10,9 +10,7 @@ void get_dependencies_for_node(
   uint32_t **output_tokens, size_t *output_tokens_length) {
   (void) dag_length;
 
-  uint8_t *why = dag_ptr;
-
-  tuix::DAG *dag = flatbuffers::GetRoot<tuix::DAG>(why);
+  const tuix::DAG *dag = flatbuffers::GetRoot<tuix::DAG>(dag_ptr);
 
   tuix::DAGNode *target = find_node(dag, node);
   if (target == nullptr) {
@@ -37,7 +35,7 @@ void get_dependencies_for_node(
 }
 
 tuix::DAGNode *find_node(
-    tuix::DAG *dag,
+    const tuix::DAG *dag,
     int token) {
 
     std::unordered_set<int> visited = {};
