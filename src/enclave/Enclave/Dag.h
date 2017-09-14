@@ -1,6 +1,11 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <functional>
+#include <typeinfo>
+
+#include "Flatbuffers.h"
+
 #ifndef DAG_H
 #define DAG_H
 using namespace edu::berkeley::cs::rise::opaque;

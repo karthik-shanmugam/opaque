@@ -1,5 +1,5 @@
 #include "Aggregate.h"
-
+#include "Dag.h"
 #include "ExpressionEvaluation.h"
 #include "common.h"
 #include <queue>
