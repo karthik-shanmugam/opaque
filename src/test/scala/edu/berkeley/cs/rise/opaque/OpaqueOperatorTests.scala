@@ -35,6 +35,8 @@ import org.scalatest.FunSuite
 import edu.berkeley.cs.rise.opaque.benchmark._
 import edu.berkeley.cs.rise.opaque.execution.EncryptedBlockRDDScanExec
 
+import edu.berkeley.cs.rise.opaque.dag
+
 trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
   def spark: SparkSession
   def numPartitions: Int
@@ -306,6 +308,30 @@ trait OpaqueOperatorTests extends FunSuite with BeforeAndAfterAll { self =>
       spark.createDataFrame(
         spark.sparkContext.makeRDD(data, numPartitions))
         .toDF(columnNames: _*))
+
+  def testDAGSerialization(): Unit = {
+    val data = sc.parallelize(0 to 100, 2)
+    val rdd = (
+        data
+        .map(i=>i+1)
+        .map(i=>(i, i))
+        .reduceByKey((a, b)=>a+b)
+        .map{case (a, b) => (a, b+1)}
+        .reduceByKey((a, b)=>a+b)
+        )
+    val dag = DAGUtils.rddToDAG(rdd)
+    val builder = new FlatBufferBuilder
+
+    DAGUtils.flatbuffersSerializeDAG(builder, dag)
+    val (enclave, eid) = Utils.initEnclave()
+
+    target = dag(0).token
+
+    val res = enclave.DependenciesForNode(eid, builder.sizedByteArray(), target)
+    println(res)
+    println(target.dependencies)
+
+  }
 
 }
 

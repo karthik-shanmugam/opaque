@@ -336,10 +336,10 @@ object DAGUtils {
     }
 }
 
-val (rdd, dag, str, dag2, str2) = DAGUtils.testCase(sc)
+// val (rdd, dag, str, dag2, str2) = DAGUtils.testCase(sc)
 
-println(str)
-println(str2)
+// println(str)
+// println(str2)
 
 
 
